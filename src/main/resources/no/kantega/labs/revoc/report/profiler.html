@@ -1,0 +1,157 @@
+<!--
+  ~ Copyright 2012 Kantega AS
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~    http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<!doctype html>
+<html>
+
+<head>
+    <link href="revoc.css" rel="stylesheet">
+    <style type="text/css">
+        body {
+            margin:10px;
+            padding:0;
+        }
+    </style>
+    <script type="text/javascript">
+
+
+        var data;
+
+        function updateData(hang) {
+            var xhr = new XMLHttpRequest();
+
+            xhr.open("GET", "profiler.json?d=" + new Date().getTime() +  +(hang ? "&hang" : ""), true);
+
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState == 4) {
+                    if((xhr.status == 0 || xhr.status == 200) && xhr.responseText) {
+                        data = eval("(" +xhr.responseText +")");
+                        drawCallReport(data);
+                        //setTimeout("updateData(true)", 5000)
+                    } else {
+                        // Server might be down, retry in a bit
+                        setTimeout("updateData(false)", 2000)
+                    }
+
+                }
+            };
+            xhr.send(null)
+        }
+
+        function framesByTime(a, b) {return b[2] - a[2]}
+
+        function drawCallReport(data) {
+            var root = document.getElementById("root");
+            root.innerHTML =  "";
+
+            var tbl = document.createElement("table");
+            tbl.innerHTML = "<tr><td width=100>Time</td><td width=100>Invocations</td><td></td></tr>"
+            var frames = data.frames;
+
+            frames.sort(framesByTime);
+
+            for(var i = 0; i < frames.length; i++) {
+                drawFrame(tbl, frames[i], 0);
+            }
+
+            root.appendChild(tbl);
+        }
+
+        function formatMicroTime(micros) {
+            if(micros < 1000) {
+                return micros + " &micro;s";
+            } else if(micros < 1000000 ) {
+                return Math.round(micros/1000) + " ms";
+            } else {
+                return Math.round(micros/1000000) + " s";
+            }
+        }
+
+        function drawFrame(tbl, frame, level) {
+            var row = document.createElement("tr");
+            tbl.appendChild(row);
+            row.innerHTML = "<td class=prftime>" +formatMicroTime(frame[2]) + "</td><td class=prfvisits>" +frame[4] +"</td>";
+
+
+            var node = document.createElement("td");
+            row.appendChild(node);
+
+            var span = document.createElement("div");
+            span.setAttribute("class", "frame");
+            var expdr = document.createElement("span");
+            expdr.setAttribute("class", "expdr");
+
+            expdr.innerHTML = "-";
+            span.appendChild(expdr);
+            var txt = document.createTextNode(data.classNames[frame[0]] +"." +data.methods[frame[0]][frame[1]]);
+            span.appendChild(txt);
+
+
+            node.appendChild(span);
+
+            span.setAttribute("style", "margin-left:" +(level) +"em;");
+
+
+
+            node.appendChild(span);
+
+
+            var childFrames = frame[5];
+            childFrames.sort(framesByTime);
+
+            var childRows = new Array();
+            row.childRows = childRows;
+
+            for(var i = 0; i < childFrames.length; i++) {
+                childRows.push(drawFrame(tbl, childFrames[i], level+1));
+            }
+            
+            expdr.expanded = true;
+            expdr.onclick = function(evt) {
+                for(var i = 0; i < childRows.length; i++) {
+                    setRowExpanded(childRows[i], expdr.expanded);
+
+                }
+                expdr.expanded = !expdr.expanded;
+                expdr.innerHTML = expdr.expanded ? "-" : "+"; 
+            }
+
+            if(childRows.length == 0) {
+                expdr.style.visibility = "hidden";
+            }
+
+            return row;
+        }
+
+        function setRowExpanded(row, expanded) {
+            row.style.display = expanded ? "none" : "table-row";
+            if(row.childRows) {
+                for(var i in row.childRows) {
+                    setRowExpanded(row.childRows[i], expanded);
+                }
+            }
+        }
+
+    </script>
+</head>
+
+<body onload="updateData(false)">
+
+<div id="root">
+
+</div>
+</body>
+</html>

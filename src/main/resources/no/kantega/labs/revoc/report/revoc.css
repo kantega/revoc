@@ -1,0 +1,131 @@
+/*
+ * Copyright 2012 Kantega AS
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+body {
+    font-family:sans-serif;
+    margin: 0;
+}
+pre {
+    margin:0;
+}
+
+td.linenumber, td.numvisits, td.conditional, td.lastvisit {
+    text-align: right;
+    background-color: #F0F0F0;
+    border-right: 1px solid #DCDCDC;
+    font-size:smaller;
+}
+
+td.lastvisit {
+    color: darkgray;
+}
+
+tr.visited.branched td.conditional {
+    background-color: #80FF80;
+}
+
+tr.nonvisited td.numvisits, tr.nonvisited td.conditional, tr.nonvisited td.lastvisit, tr.nonvisited td.sourceline {
+    background-color: #FF9595;
+}
+
+tr.branched.singlebranched td.conditional, tr.singlebranched td.sourceline  {
+    background-color: #ffff99;
+    border-right: 1px solid #ffff99;
+}
+
+td.conditional {
+    font-size: x-small;
+}
+
+
+tr.nonvisited td.numvisits, tr.nonvisited td.conditional, tr.nonvisited td.lastvisit {
+    border-right: 1px solid #FF9595;
+}
+
+
+
+tr.visited td.numvisits, tr.nonbranched td.numvisits  {
+    background-color: #80FF80;
+}
+
+table {
+    border-spacing:0;
+}
+
+table td {
+    padding: 0.3em;
+}
+
+#sourcecolumn {
+    float:right;
+    width: 60%;
+}
+
+#title {
+    font-weight:bold;
+}
+
+div.frame {
+    
+}
+
+.prfvisits, .prftime {
+    text-align:right;
+}
+
+.expdr {
+    border: 1px solid black;
+    padding: 0.1em;
+    display: inline-block;
+    height: 0.5em;
+    width: 0.5em;
+    margin-right: 0.5em;
+    text-align:center;
+    vertical-align:middle;
+}
+
+#canvasscroll {
+    max-width:100%;
+    max-height:100%;
+    overflow:auto;
+    float:left;
+    width:40%;
+    height:100%;
+    position: fixed;
+    background-color:lightgray;
+}
+
+#canvas {
+    cursor:pointer;
+}
+
+#footer {
+    display: none;
+    background: rgb(0, 0, 0);
+    background: rgba(0, 0, 0, 0.7);
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    color: white;
+    padding: 1em;
+}
+
+#coverage {
+    width: 3em;
+    display: inline-block;
+    text-align: right;
+    margin-right: 1em;
+}
