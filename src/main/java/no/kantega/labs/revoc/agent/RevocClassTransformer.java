@@ -32,20 +32,20 @@ import java.util.List;
  *
  */
 public class RevocClassTransformer implements ClassFileTransformer {
-    private final String[] includes;
+    private final String[] packages;
 
-    public RevocClassTransformer(String[] includes) {
-        this.includes = includes;
-        if (includes != null) {
-            for (int i = 0; i < includes.length; i++) {
-                this.includes[i] = includes[i].replace('.', '/');
+    public RevocClassTransformer(String[] packages) {
+        this.packages = packages;
+        if (packages != null) {
+            for (int i = 0; i < packages.length; i++) {
+                this.packages[i] = packages[i].replace('.', '/');
             }
         }
     }
 
     public byte[] transform(ClassLoader classLoader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classFileBuffer) throws IllegalClassFormatException {
 
-        if (!shouldFilter(classLoader, className, includes)) {
+        if (!shouldFilter(classLoader, className, packages)) {
             return null;
         } else {
             return instrumentClass(className, classFileBuffer, classLoader);
@@ -112,7 +112,7 @@ public class RevocClassTransformer implements ClassFileTransformer {
         }
     }
 
-    public static boolean shouldFilter(ClassLoader classLoader, String className, String[] includes) {
+    public static boolean shouldFilter(ClassLoader classLoader, String className, String[] packages) {
         if (classLoader == null) {
             return false;
         }
@@ -126,11 +126,9 @@ public class RevocClassTransformer implements ClassFileTransformer {
             return false;
         }
 
-        if (includes != null) {
-            for (String prefix : includes) {
-                if (prefix.endsWith("/") && className.startsWith(prefix)) {
-                    return true;
-                } else if (className.equals(prefix)) {
+        if (packages != null) {
+            for (String prefix : packages) {
+                if (className.startsWith(prefix)) {
                     return true;
                 }
             }

@@ -96,8 +96,7 @@ public class RevocAgent {
             err("\tjava -javaagent:revoc.jar=packages=com.example.,port=7070 -jar my.jar:");
             System.exit(-1);
         } else {
-
-            log("[revoc] Using packages pattern(s) " + packages);
+            log("Using packages pattern(s) " + packages);
         }
     }
 
