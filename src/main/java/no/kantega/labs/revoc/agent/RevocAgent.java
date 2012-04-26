@@ -16,130 +16,111 @@
 
 package no.kantega.labs.revoc.agent;
 
-import no.kantega.labs.revoc.source.CompondSourceSource;
-import no.kantega.labs.revoc.source.MavenProjectSourceSource;
-import no.kantega.labs.revoc.source.MavenSourceArtifactSourceSource;
-import no.kantega.labs.revoc.web.RevocWebSocketServlet;
-import no.kantega.labs.revoc.web.WebHandler;
-import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.server.handler.HandlerList;
-import org.eclipse.jetty.servlet.ServletContextHandler;
-
 import java.lang.instrument.Instrumentation;
+import java.lang.instrument.UnmodifiableClassException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+
+import static no.kantega.labs.revoc.agent.Log.err;
+import static no.kantega.labs.revoc.agent.Log.log;
 
 /**
  *
  */
 public class RevocAgent {
 
+    /**
+     * Run when Revoc is added as a Java Agent as a startup command line option
+     */
+    public static void premain(String options, Instrumentation instrumentation) throws Exception {
+        String[] packages = init(options);
+        instrumentation.addTransformer(new RevocClassTransformer(packages));
+    }
+
+
+    /**
+     * Run when Revoc is injected as an agent to an already running JVM
+     */
     public static void agentmain(String options, Instrumentation instrumentation) throws Exception {
 
-        System.out.println("[revoc] Configuring coverage engine");
+        String[] packages = init(options);
+
+        retransform(instrumentation, packages);
+
+    }
+
+    private static String[] init(String options) throws Exception {
+        log("Configuring coverage engine");
 
         Properties props = readOptions(options);
-        validateInclude(props);
 
-        String[] includes = getIncludes(props);
+        validatePackagesConfigured(props);
 
+        String[] packages = getPackagesToInstrument(props);
+
+        startJettyServer(props);
+
+        return packages;
+    }
+
+    private static void retransform(Instrumentation instrumentation, String[] packages) throws UnmodifiableClassException {
         List<Class> classesToInstrument = new ArrayList<Class>();
 
-        for(Class clazz : instrumentation.getAllLoadedClasses()) {
-            if(RevocClassTransformer.shouldFilter(clazz.getClassLoader(), clazz.getName().replace('.','/'), includes)) {
+        for (Class clazz : instrumentation.getAllLoadedClasses()) {
+            if (RevocClassTransformer.shouldFilter(clazz.getClassLoader(), clazz.getName().replace('.', '/'), packages)) {
                 classesToInstrument.add(clazz);
             }
         }
 
-        System.out.println("[revoc] Instrumenting " + classesToInstrument.size() +" classes");
+        log(String.format("Instrumenting %s classes", classesToInstrument.size()));
 
-        instrumentation.addTransformer(new RevocClassTransformer(includes), true);
+        instrumentation.addTransformer(new RevocClassTransformer(packages), true);
 
         instrumentation.retransformClasses(classesToInstrument.toArray(new Class[classesToInstrument.size()]));
-
-
-
-
-
-        startJettyServer(props);
-
     }
 
-    private static void validateInclude(Properties props) {
-        if(!props.containsKey("include")) {
-            System.err.println("[revoc] JVM agent: 'include' option must be specified. Example command line:");
-            System.err.println("[revoc] \tjava -javaagent:revoc.jar=include=com.example.,port=7070 -jar my.jar:");
+    private static String[] getPackagesToInstrument(Properties props) {
+        String[] packages = parseList(props.getProperty("packages"));
+        for (int i = 0; i < packages.length; i++) {
+            packages[i] = packages[i].replace('.', '/');
+
+        }
+        return packages;
+    }
+
+    private static void validatePackagesConfigured(Properties props) {
+        String packages = props.getProperty("packages");
+        if (packages == null) {
+            err("Option 'packages' must be specified. Example command line:");
+            err("\tjava -javaagent:revoc.jar=packages=com.example.,port=7070 -jar my.jar:");
             System.exit(-1);
         } else {
-            System.out.println("[revoc] Using include pattern(s) " + props.get("include"));
+
+            log("[revoc] Using packages pattern(s) " + packages);
         }
-    }
-
-    private static String[] getIncludes(Properties props) {
-        String[] includes = parseList(props.getProperty("include"));
-        for (int i = 0; i < includes.length; i++) {
-            includes[i] = includes[i].replace('.','/');
-
-        }
-        return includes;
-    }
-
-    public static void premain(String options, Instrumentation instrumentation) throws Exception {
-        Properties props = readOptions(options);
-        validateInclude(props);
-        String[] includes = parseList(props.getProperty("include"));
-        instrumentation.addTransformer(new RevocClassTransformer(includes));
-        startJettyServer(props);
     }
 
     private static String[] parseList(String list) {
         return list == null ? null : list.split("\\|");
     }
 
-    private static Server startJettyServer(Properties props) throws Exception {
-        String port = props.getProperty("port");
-        if(port != null) {
-            System.out.println("[revoc] Using HTTP port " + port);
-
-        } else {
-            port = "7070";
-        }
-        int p = 0;
-        try {
-            p = Integer.parseInt(port);
-        } catch (NumberFormatException e) {
-            System.err.println("[revoc] Port is not a number: " + port);
-            System.exit(-1);
-        }
-
-        Server server = new Server(p);
-
-        HandlerList collection = new HandlerList();
-
-        ServletContextHandler ctx = new ServletContextHandler();
-        ctx.setContextPath("/ws");
-        ctx.addServlet(RevocWebSocketServlet.class, "/ws");
-        collection.addHandler(ctx);
-
-        collection.addHandler(new WebHandler(new CompondSourceSource(new MavenProjectSourceSource(), new MavenSourceArtifactSourceSource())));
-
-
-        server.setHandler(collection);
-
-        server.start();
-        return server;
+    private static void startJettyServer(Properties props) throws Exception {
+        new JettyStarter().start(props);
     }
 
     private static Properties readOptions(String options) {
         Properties props = new Properties();
-        if(options == null) {
+        if (options == null) {
             return props;
         }
-        for(String abs : options.split(",")) {
+        for (String abs : options.split(",")) {
             String[] ab = abs.split("=");
             props.setProperty(ab[0], ab[1]);
         }
         return props;
     }
+
+
+
 }
