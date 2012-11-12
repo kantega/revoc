@@ -21,6 +21,9 @@ window.addEventListener("load", function() {
                             window.webkitRequestAnimationFrame || window.msRequestAnimationFrame ||
                             window.oRequestAnimationFrame || function(fun, elem) {setTimeout(fun, 10)};
 
+    $ = function(sel) {
+        return document.querySelector(sel);
+    };
     var data;
 
     var zoom = 2;
@@ -36,23 +39,38 @@ window.addEventListener("load", function() {
     var idx2cn;
     var cn2idx;
 
-    var canvas, ctx;
+    var smallCanvas, canvas, ctx, smallCtx, source, canvasScroll;
+
+    var smallCanvasDragging = false;
+
+    var redrawTimeout;
 
     var ws = {
         _ws: null,
 
         join: function() {
+            // Safari must be >= 6
+            if(navigator.userAgent.indexOf("Safari") != -1 && navigator.userAgent.indexOf("Version/5.") !=-1) {
+                console.log("Detected Safari 5, Falling back to Ajax")
+                return false;
+            }
             if (!window.WebSocket) {
+                console.log("Browser doesn't support WebSocket, Falling back to Ajax")
                 return false;
             }
             var location = document.location.toString().replace('http://', 'ws://').replace('https://', 'wss://') + "ws/ws";
             _ws = new WebSocket(location);
+            _ws.onerror = this._onerror;
             _ws.onopen = this._onopen;
             _ws.onmessage = this._onmessage;
             _ws.onclose = this._onclose;
+            console.log("Ready to join")
             return true;
         },
 
+        _onerror: function(err) {
+            console.log("Error: " + err)
+        },
         _onopen: function() {
             // Not doing much
         },
@@ -64,16 +82,25 @@ window.addEventListener("load", function() {
         },
 
         _onmessage: function(m) {
-            console.log("New data");
             var newData = eval("(" + m.data + ")");
-            var first = !data;
-            gotNewData(newData);
-            if (first) {
-                getSourceReport({className: idx2cn[0], lineId: 0});
+            var size = 0, key;
+            for (key in newData) {
+                if (newData.hasOwnProperty(key)) size++;
+            }
+            console.log("New data classes: " + size + " / " + m.data.length);
+
+            if(size > 0) {
+                var first = !data;
+                gotNewData(newData);
+                if (first) {
+                    console.log("Getting source for: " +idx2cn[0] + ", line " + 0);
+                    getSourceReport({className: idx2cn[0], lineId: 0});
+                }
             }
         },
 
         _onclose: function(m) {
+            console.log("Closing WS: " +m)
             this._ws = null;
         }
 
@@ -92,7 +119,6 @@ window.addEventListener("load", function() {
         }
 
         if(data) {
-            console.log("Merging new data")
             for(var cn in newData) {
                 data[cn] = newData[cn];
             }
@@ -113,44 +139,16 @@ window.addEventListener("load", function() {
             getSourceReport(currentClick, false);
         }
         drawData();
-    }
-
-    function updateData(props) {
-
-        var xhr = new XMLHttpRequest();
-
-        var url = "json?d=" + new Date().getTime()
-
-        if (props.hang)
-            url += "&hang";
-
-        xhr.open("GET", url, true);
-
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState == 4) {
-                if ((xhr.status == 0 || xhr.status == 200) && xhr.responseText) {
-                    var newData = eval("(" + xhr.responseText + ")");
-
-                    gotNewData(newData);
-
-                    if (props.onData) {
-                        props.onData(data);
-                    }
-                    setTimeout("updateData({hang: true})", 1000)
-                } else {
-                    // Server might be down, retry in a bit
-                    setTimeout("updateData({hang: false})", 2000)
-                }
-
-            }
-        };
-        xhr.send(null)
+        if(redrawTimeout) {
+            clearTimeout(redrawTimeout);
+        }
+        redrawTimeout = setTimeout(drawData, 11000)
     }
 
     function isClassChanged(data, newData, className) {
 
-        var oldLines = data[className][1];
-        var newLines = newData[className][1];
+        var oldLines = data[className][2];
+        var newLines = newData[className][2];
         if (oldLines.length != newLines.length) {
             return true;
         }
@@ -167,8 +165,9 @@ window.addEventListener("load", function() {
 
         var classData = data[className];
         var lines = classData[1];
-        var lastTime = classData[2];
-        var times= classData[3];
+        var visits = classData[2];
+        var lastTime = classData[3];
+        var times= classData[4];
         var now = new Date().getTime();
 
 
@@ -176,32 +175,32 @@ window.addEventListener("load", function() {
         ctx.fillRect(c * zoom, 0, zoom, maxLines * zoom);
 
         for (var l = 0; l < lines.length; l++) {
-            var val = lines[l];
-            if (val != -1) {
-                if (val == 0) {
-                    ctx.fillStyle = highlight ? "rgb(255,0,0)" : "rgb(255,100,100)";
-                } else if (val > 0) {
-                    var rel = times[l];
-                    var lastAccess  = lastTime - rel;
-                    var recency = now-lastAccess;
-                    var a = highlight ? 1 : 0.9;
+            var line = lines[l];
+            var val = visits[l];
 
-                    ctx.fillStyle = recency < 10000 ? "rgba(0,255,255," +a +")" :"rgba(0,255,0," +a +")"
+            if (val == 0) {
+                ctx.fillStyle = highlight ? "rgb(255,0,0)" : "rgb(255,100,100)";
+            } else if (val > 0) {
+                var rel = times[l];
+                var lastAccess  = lastTime - rel;
+                var recency = now-lastAccess;
 
+                ctx.fillStyle = recency < 10000 ? "rgb(0,200,255)" :"rgb(0,255,0)"
 
-                }
-                ctx.fillRect(c * zoom, l * zoom, zoom, zoom);
 
             }
+            ctx.fillRect(c * zoom, line * zoom, zoom, zoom);
+
+
         }
     }
 
     function drawData() {
-        console.log("Drawing data")
         maxLines = 0;
         var classes = 0;
         for (var i in data) {
-            maxLines = Math.max(maxLines, data[i][1].length);
+            var lines = data[i][1];
+            maxLines = Math.max(maxLines, lines[lines.length-1]+1);
             classes++;
         }
 
@@ -218,10 +217,6 @@ window.addEventListener("load", function() {
         width = width * zoom;
         height = height * zoom;
 
-        document.getElementById("canvasscroll").style.width = (width + 15) + "px";
-        document.getElementById("sourcecolumn").style.width = (window.outerWidth - width - 35) + "px";
-        document.getElementById("source").style.width = (window.outerWidth - width - 35) + "px";
-
         canvas.setAttribute("width", width);
         canvas.setAttribute("height", height);
 
@@ -230,8 +225,26 @@ window.addEventListener("load", function() {
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         drawLines();
+        drawSmall();
 
 
+    }
+
+    function drawSmall() {
+        var w = canvas.width/10;
+        smallCanvas.width = w;
+        var h = canvas.height/10;
+        smallCanvas.height = h;
+
+        smallCtx.drawImage(canvas, 0, 0, w, h)
+
+        var cs = canvasScroll;
+
+        smallCtx.fillStyle = "rgba(255,255,255,0.2)";
+        smallCtx.strokeStyle = "rgb(255,255,255)";
+        smallCtx.rect(cs.scrollLeft/10, cs.scrollTop/10, cs.offsetWidth/10,cs.offsetHeight/10);
+        smallCtx.fill();
+        smallCtx.stroke();
     }
 
     function drawLines() {
@@ -240,12 +253,11 @@ window.addEventListener("load", function() {
         }
     }
 
-    function getCanvasPos() {
-        var cv = document.getElementById("canvas")
-        var x = cv.offsetLeft;
-        var y = cv.offsetTop;
+    function getElemPos(elem) {
+        var x = elem.offsetLeft;
+        var y = elem.offsetTop;
 
-        var element = cv.offsetParent;
+        var element = elem.offsetParent;
 
         while (element !== null) {
             x = parseInt(x) + parseInt(element.offsetLeft);
@@ -261,8 +273,9 @@ window.addEventListener("load", function() {
             var numLines = 0;
             var covered = 0;
             var lines = data[className][1];
+            var visits = data[className][2];
             for(var l =0; l <  lines.length; l++) {
-                var runs = lines[l];
+                var runs = visits[l];
                 if(runs>=0) {
                     numLines++;
                 }
@@ -280,18 +293,18 @@ window.addEventListener("load", function() {
         }
     }
     function canvasmoved(evt) {
-        var ctx = document.getElementById("canvas").getContext("2d");
-
+        if(!data) {
+            return;
+        }
         var clsLine = getClassAndLine(evt);
-
         if (prevLine) {
             drawLine(prevLine.className, false);
         }
 
         drawLine(clsLine.className, true);
 
-        document.getElementById("title").innerHTML = clsLine.className.replace(/\//g, ".") + ": " + (clsLine.lineId + 1);
-        document.getElementById("coverage").innerHTML = getCoverage(clsLine.className) +"%";
+        $("#title").innerHTML = clsLine.className.replace(/\//g, ".") + ": " + (clsLine.lineId + 1);
+        $("#coverage").innerHTML = getCoverage(clsLine.className) +"%";
 
         prevLine = clsLine
     }
@@ -312,13 +325,58 @@ window.addEventListener("load", function() {
             currentClick = clsLine;
 
         } else {
-            showSource(currentSource, clsLine, scroll);
+            updateSource();
         }
     }
 
+    function updateTime() {
+        if(currentClick) {
+            var cls = data[currentClick.className];
+
+            var times = cls[4];
+            var tref = cls[3];
+            var lines = cls[1];
+
+            var now = new Date().getTime();
+
+            for(var i = 0,m=lines.length; i<m;i++) {
+                var trel = times[i];
+                if(trel >= 0)
+                $("#time-"+(lines[i]+1)).innerHTML = formatSince(trel, tref, now)
+            }
+        }
+    }
+
+    function updateSource() {
+
+        if(currentClick) {
+
+            var cls = data[currentClick.className];
+
+            var lines = cls[1];
+            var visits = cls[2];
+
+            for(var i = 0,m=lines.length; i<m;i++) {
+                var line = lines[i];
+                var n = visits[i];
+                var row = $("#line-"+(line+1));
+                if(n != -1) {
+                    $("#nv-"+(line+1)).innerHTML = n;
+                }
+
+
+                row.setAttribute("class", n > 0 ? "visited" : "nonvisited");
+
+
+            }
+            updateTime();
+        }
+    }
     function showSource(sourceText, clsLine, scroll) {
-        var source = document.getElementById("source");
+
         source.innerHTML = "";
+        $("#sourcetitle").innerHTML = clsLine.className.replace(/\//g,".");
+        $("#sourcecoverage").innerHTML = getCoverage(clsLine.className) +"%";
 
         var tbl = document.createElement("table");
 
@@ -329,46 +387,9 @@ window.addEventListener("load", function() {
 
         var lines = sourceText.split("\n");
 
-        var bpByLine = {};
-        var bps = cls[2];
-        for (var b in bps) {
-            if (!bpByLine[bps[b][0]]) bpByLine[bps[b][0]] = new Array();
-            bpByLine[bps[b][0]].push(bps[b]);
-        }
-
-        var visits = cls[1];
-
         for (var l = 0; l < lines.length; l++) {
 
-            var lv = l >= visits.length ? -1 : visits[l];
-
             var line = document.createElement("tr");
-
-
-            var className = lv == -1 ? "noline" : lv == 0 ? "nonvisited" : "visited";
-
-            var singleBranched = false;
-            var branches = "";
-            if (bpByLine[l]) {
-                className += " branched";
-                for (var bi in bpByLine[l]) {
-                    var bp = bpByLine[l][bi];
-                    var jmp = bp[1] - bp[2];
-                    var nojmp = bp[2];
-                    if ((jmp == 0 && nojmp > 0 ) || (jmp > 0 && nojmp == 0)) {
-                        singleBranched = true;
-                    }
-                    if (branches != "") {
-                        branches += ", ";
-                    }
-                    branches += jmp + "/" + nojmp;
-                }
-            }
-            if (singleBranched)
-                className += " singlebranched";
-
-            line.setAttribute("class", className);
-
 
             line.setAttribute("id", "line-" + (l + 1));
 
@@ -379,36 +400,18 @@ window.addEventListener("load", function() {
 
             var nv = document.createElement("td");
             nv.setAttribute("class", "numvisits");
-            nv.innerHTML = lv >= 0 ? lv : "";
+            nv.setAttribute("id", "nv-" +(l+1));
             line.appendChild(nv);
 
+            /*
             var cond = document.createElement("td");
             cond.setAttribute("class", "conditional");
-            cond.innerHTML = lv > 0 ? branches : "";
             line.appendChild(cond);
+            */
 
             var time = document.createElement("td");
-            cond.setAttribute("class", "lastvisit");
-            if (l < visits.length) {
-                var now = new Date().getTime();
-
-                var trel = cls[3][l];
-                var t = cls[2]-trel;
-                var ss = parseInt((now - t) / 1000);
-                var tt = ""
-                if (trel < 0) {
-
-                } else if (ss <= 60) {
-                    tt = ss + "s";
-                } else if (ss < 3600) {
-                    tt += parseInt(ss / 60) + "m";
-                } else if (ss < 86400) {
-                    tt += parseInt(ss / 3600) + "h";
-                } else {
-                    tt += parseInt(ss / 86400) + "d";
-                }
-                cond.innerHTML = tt;
-            }
+            time.setAttribute("id", "time-" +(l+1));
+            time.setAttribute("class", "lastvisit");
             line.appendChild(time);
 
             var src = document.createElement("td");
@@ -422,20 +425,43 @@ window.addEventListener("load", function() {
 
         source.style.display = "block";
 
+        updateSource();
+
         if (scroll) {
             scrollSourceTo(clsLine)
         }
     }
 
+    function formatSince(trel, tref, now) {
+        var tt = ""
+        if (trel >= 0) {
+            var t = tref -trel;
+            var ss = parseInt((now - t) / 1000);
+            if (ss <= 60) {
+                tt = ss + "s";
+            } else if (ss < 3600) {
+                tt += parseInt(ss / 60) + "m";
+            } else if (ss < 86400) {
+                tt += parseInt(ss / 3600) + "h";
+            } else {
+                tt += parseInt(ss / 86400) + "d";
+            }
+        }
+        return tt;
+    }
+
     function scrollSourceTo(clsLine) {
-        var e = document.getElementById("line-" + (clsLine.lineId + 1));
+        var e = $("#line-" + (clsLine.lineId + 1));
         if (e) e.scrollIntoView();
-        var cs = document.getElementById("canvasscroll");
-        document.documentElement.scrollTop -= (cs.offsetHeight + 20);
-        document.documentElement.scrollLeft = 0;
+        var cs = $("#canvasscroll");
+
+        document.body.scrollTop -= (120);
+        document.body.scrollTop.scrollLeft = 0;
     }
 
     function canvasclicked(evt) {
+        evt.preventDefault();
+        $("#source").style.display="block";
         var clsLine = getClassAndLine(evt);
 
         if (!currentClick || currentClick.className != clsLine.className) {
@@ -447,18 +473,18 @@ window.addEventListener("load", function() {
     }
 
     function getClassAndLine(evt) {
-        var cvs = document.getElementById("canvasscroll");
-        var cpos = getCanvasPos();
+        var cvs = $("#canvasscroll");
+        var cpos = getElemPos(cvs);
 
         var mx = evt.clientX - cpos[0] + cvs.scrollLeft;
         var my = evt.clientY - cpos[1] + cvs.scrollTop;
 
 
         var clsId = parseInt(mx / zoom);
-        var classLength = data[idx2cn[clsId]][1].length;
+        var cls = data[idx2cn[clsId]];
+        var classLength = cls[1][cls[1].length-1];
         var wouldBeLength = parseInt(my / zoom);
-        var lineId = Math.min(classLength - 1, wouldBeLength);
-        console.log("lineId/clsId: " + wouldBeLength + "/" + clsId);
+        var lineId = Math.min(classLength, wouldBeLength);
         return {className: idx2cn[clsId], lineId: lineId};
     }
 
@@ -470,13 +496,268 @@ window.addEventListener("load", function() {
         }
     }
 
+    function canvaswheel(evt) {
+        evt.preventDefault();
+        console.log(evt);
+        canvasScroll.scrollLeft -= evt.wheelDeltaX;
+        canvasScroll.scrollTop -= evt.wheelDeltaY;
+        drawSmall();
+    }
     function canvasenter() {
-        document.getElementById("footer").style.display = "block";
+        $("#footer").style.display = "block";
     }
 
+    function smallCanvasPaint(evt) {
+        var cpos = getElemPos(smallCanvas);
+
+        var mx = evt.clientX - cpos[0] + smallCanvas.scrollLeft;
+
+        var my = evt.clientY - cpos[1] + smallCanvas.scrollTop;
+
+        canvasScroll.scrollLeft = mx*10 -canvasScroll.offsetWidth/2;
+        canvasScroll.scrollTop = my*10 -canvasScroll.offsetHeight/2;
+        drawSmall();
+    }
+
+    function smallCanvasMove(evt) {
+        if(smallCanvasDragging) {
+            evt.preventDefault();
+            smallCanvasPaint(evt);
+        }
+
+    }
+    function smallCanvasDown(evt) {
+        evt.preventDefault();
+        smallCanvasDragging = true;
+        smallCanvasPaint(evt);
+    }
+    function smallCanvasUp(evt) {
+        evt.preventDefault();
+        smallCanvasDragging = false;
+        smallCanvasPaint(evt);
+    }
+
+    function updateData(props) {
+
+        var xhr = new XMLHttpRequest();
+
+        var url = "json?d=" + new Date().getTime()
+
+        xhr.open("GET", url, true);
+
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState == 4) {
+                if ((xhr.status == 0 || xhr.status == 200) && xhr.responseText) {
+                    var newData = eval("(" + xhr.responseText + ")");
+
+                    gotNewData(newData);
+
+                    if (props.onData) {
+                        props.onData(data);
+                    }
+                    //setTimeout("updateData({hang: true})", 1000)
+                } else {
+                    // Server might be down, retry in a bit
+                    //setTimeout("updateData({hang: false})", 2000)
+                }
+
+            }
+        };
+        xhr.send(null)
+    }
+
+    function createTotalLine(totalNumLinesRun, totalNumLinesUnRun, totalNumLines, totalSumRun, totalMax) {
+        var total = document.createElement("tr");
+        total.className = "total";
+        var label = createElement("td", "Total");
+        label.className = "label";
+        total.appendChild(label);
+        total.appendChild(createElement("td", totalNumLinesRun));
+        total.appendChild(createElement("td", totalNumLinesUnRun));
+        total.appendChild(createElement("td", totalNumLines));
+        total.appendChild(createElement("td", Math.round(totalNumLinesRun * 100 / totalNumLines) + "%"));
+        total.appendChild(createElement("td", totalSumRun));
+        total.appendChild(createElement("td", totalMax));
+        return total;
+    }
+
+    var desc = 1;
+    var overviewSort = null;
+
+
+    function showOverview(evt) {
+        $("#source").style.display = "none";
+        document.body.scrollTop =0;
+        if(evt)
+            evt.preventDefault();
+
+        var array = new Array();
+
+        var totalNumLines = 0;
+        var totalNumLinesRun = 0;
+        var totalNumLinesUnRun = 0;
+        var totalMax = 0;
+        var totalSumRun = 0;
+
+        for(var c in data) {
+            var numLines = 0;
+            var numLinesRun = 0;
+            var sumLinesRun = 0;
+            var maxLinesRun = 0;
+
+            var lines = data[c][1];
+            var visits = data[c][2];
+            for(var l= 0, m=lines.length; l < m; l++) {
+                var r = visits[l];
+                if(r > 0) {
+                    numLinesRun++;
+                    totalNumLinesRun++;
+                    sumLinesRun += r;
+                    totalSumRun += r;
+                }
+
+                maxLinesRun = Math.max(r, maxLinesRun);
+                totalMax = Math.max(r, totalMax);
+                numLines++;
+                totalNumLines++;
+
+            }
+            totalNumLinesUnRun += (numLines-numLinesRun);
+            array.push([c, numLinesRun, numLines-numLinesRun, numLines, Math.round(numLinesRun*100 / numLines), sumLinesRun, maxLinesRun]);
+        }
+        if(overviewSort)
+            array.sort(overviewSort);
+
+
+
+        var overview = $("#overview");
+        while(overview.firstChild) {
+            overview.removeChild(overview.firstChild);
+        }
+        overview.style.display="block";
+
+        var table = document.createElement("table");
+
+
+        var tr = document.createElement("tr");
+        var name = createElement("th", "Name");
+
+        name.addEventListener("click", function() {
+            overviewSort = null;
+            showOverview();
+        });
+
+        tr.appendChild(name);
+        var run = createElement("th", "Run");
+        run.setAttribute("class", "sortable");
+        run.addEventListener("click", function() {
+            desc = desc *-1;
+            overviewSort = function(a, b) {return (desc*(b[1] - a[1]))};
+            showOverview();
+        });
+        tr.appendChild(run);
+
+        var unRun = createElement("th", "UnRun");
+        unRun.setAttribute("class", "sortable");
+        unRun.addEventListener("click", function() {
+            desc = desc *-1;
+            overviewSort = function(a, b) {return (desc*(b[2] - a[2]))};
+            showOverview();
+        });
+        tr.appendChild(unRun);
+        var linesCol = createElement("th", "Lines");
+        linesCol.setAttribute("class", "sortable");
+        linesCol.addEventListener("click", function() {
+            desc = desc *-1;
+            overviewSort = function(a, b) {return (desc*(b[3] - a[3]))};
+            showOverview();
+        });
+        tr.appendChild(linesCol);
+        var coverage = createElement("th", "Cover");
+        coverage.setAttribute("class", "sortable");
+        coverage.addEventListener("click", function() {
+            desc = desc *-1;
+            overviewSort = function(a, b) {return (desc*(b[4] - a[4]))};
+            showOverview();
+        });
+        tr.appendChild(coverage);
+        var sumCol = createElement("th", "Sum");
+        sumCol.setAttribute("class", "sortable");
+        sumCol.addEventListener("click", function() {
+            desc = desc *-1;
+            overviewSort = function(a, b) {return (desc*(b[5] - a[5]))};
+            showOverview();
+        });
+        tr.appendChild(sumCol);
+
+        var maxi = createElement("th", "Max");
+        maxi.addEventListener("click", function() {
+            desc = desc *-1;
+            overviewSort = function(a, b) {return (desc*(b[6] - a[6]))};
+            showOverview();
+        });
+        maxi.setAttribute("class", "sortable");
+
+        tr.appendChild(maxi);
+
+        table.appendChild(tr);
+
+        table.appendChild(createTotalLine(totalNumLinesRun, totalNumLinesUnRun, totalNumLines, totalSumRun, totalMax));
+
+        for(var i= 0,m=array.length; i<m; i++) {
+            var a = array[i];
+            tr = document.createElement("tr");
+            tr.setAttribute("class", "class " + (i%2 == 0 ? "even" : "odd"));
+            var td = document.createElement("td");
+            tr.setAttribute("rclass", a[0]);
+            tr.addEventListener("click", function(evt) {
+                $("#overview").style.display="none";
+
+                var className = this.getAttribute("rclass");
+                var line = 0;
+                var lines = data[className][1];
+                for(var l = 0, m=lines.length; l < m; l++) {
+                    if(lines[l] != -1) {
+                        line = l;
+                        break;
+                    }
+                }
+                $("#source").style.display="none";
+                getSourceReport({className: className,lineId:line}, true)
+            });
+            var li = a[0].lastIndexOf("/");
+
+            var pack = createElement("div", a[0].substr(0, li).replace(/\//g,"."));
+            pack.setAttribute("class", "package")
+            td.appendChild(pack);
+            var cName = createElement("div", a[0].substr(li+1));
+            cName.setAttribute("class", "className")
+            td.appendChild(cName);
+            td.setAttribute("class", "label");
+            tr.appendChild(td);
+            table.appendChild(tr);
+
+            tr.appendChild(createElement("td", a[1]));
+            tr.appendChild(createElement("td", a[2]));
+            tr.appendChild(createElement("td", a[3]));
+            tr.appendChild(createElement("td", a[4] +"%"));
+            tr.appendChild(createElement("td", a[5]));
+            tr.appendChild(createElement("td", a[6]));
+
+
+        }
+
+
+        table.appendChild(createTotalLine(totalNumLinesRun, totalNumLinesUnRun, totalNumLines, totalSumRun, totalMax));
+
+
+        overview.appendChild(table);
+
+
+
+    }
 
     if (!ws.join()) {
-        console.log("Websocket not supported, falling back to Ajax")
         updateData({hang: false,
             onData: function(d) {
                 if (idx2cn[0]) {
@@ -485,15 +766,18 @@ window.addEventListener("load", function() {
             }
         });
 
+
     }
 
-    function animloop() {
-        drawLines();
-        requestAnimationFrame(animloop)
-    }
-    canvas = document.getElementById("canvas");
 
+    smallCanvas = $("#smallCanvas");
+    canvas = $("#canvas");
+    canvasScroll = $("#canvasscroll");
+    source = $("#source");
     ctx = canvas.getContext("2d");
+
+
+    smallCtx = smallCanvas.getContext("2d");
 
 
 
@@ -502,7 +786,35 @@ window.addEventListener("load", function() {
     canvas.addEventListener("click", canvasclicked);
     canvas.addEventListener("mouseout", canvasout);
     canvas.addEventListener("mouseover", canvasenter);
+    canvas.addEventListener("mousewheel", canvaswheel);
 
-    animloop();
+    smallCanvas.addEventListener("mousedown", smallCanvasDown);
+    smallCanvas.addEventListener("mouseup", smallCanvasUp);
+    smallCanvas.addEventListener("mouseout", function() {smallCanvasDragging=false});
+    smallCanvas.addEventListener("mousemove", smallCanvasMove);
+
+    $("#pixelsheading").addEventListener("click", function() {
+        var p = $("#pixels");
+        if(p.getAttribute("class")) {
+            p.setAttribute("class", "");
+            this.innerHTML ="Hide navigation"
+        } else {
+            p.setAttribute("class", "hidden");
+            this.innerHTML ="Show navigation"
+        }
+
+    });
+
+    setInterval(updateTime, 1000);
+
+    $("#showclasses").addEventListener("click", showOverview);
+
+    function createElement(name, content) {
+        var td = document.createElement(name);
+        td.innerHTML = content;
+        return td;
+    }
+
+
 
 });

@@ -62,16 +62,35 @@ public class JsonHandler {
 
                 writer.print(",");
 
+                final long[] visits = coverageData.getLinesVisited(i);
+                if(true) {
+                    // Lines
+                    writer.print("[");
+                    int c  = 0;
+                    for (int j = 0; j < visits.length; j++) {
+                        long visit = visits[j];
+                        if(visit >= 0) {
+                            if(c++ > 0) {
+                                writer.print(",");
+                            }
+                            writer.print(j);
+                        }
+                    }
+                    writer.print("]");
+                }
                 // Line visits
                 {
-                    writer.print("[");
-                    final long[] visits = coverageData.getLinesVisited(i);
+                    writer.print(",[");
+                    int c = 0;
                     for (int j = 0; j < visits.length; j++) {
-                        if(j > 0) {
-                            writer.print(",");
-                        }
                         long visit = visits[j];
-                        writer.print(visit);
+
+                        if(visit >= 0) {
+                            if(c++ > 0) {
+                                writer.print(",");
+                            }
+                            writer.print(visit);
+                        }
                     }
                     writer.print("]");
 
@@ -101,18 +120,18 @@ public class JsonHandler {
 
                     writer.print(",[");
 
-                    for (int j = 0; j < times.length; j++) {
-                        if(j > 0) {
-                            writer.print(",");
-                        }
+                    int c = 0;
+                    for (int j = 0; j < visits.length; j++) {
                         long t = times[j];
-                        if(t < 1) {
-                            t --;
-                        } else {
-                            t = last - times[j];
+                        long visit = visits[j];
+                        if(visit >= 0) {
+                            if(c++ > 0) {
+                                writer.print(",");
+                            }
+                            writer.print(visit == 0 ? -1 : last-t);
                         }
 
-                        writer.print(t);
+
                     }
                     writer.print("]");
 

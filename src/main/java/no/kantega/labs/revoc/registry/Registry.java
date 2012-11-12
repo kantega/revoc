@@ -49,8 +49,8 @@ public abstract class Registry {
     private static BranchPoint[][] branchPoints;
 
     public static volatile long time = 0;
-    public static final int CHECK_RESOLUTION_MILLIS = 50;
-    public static final int NOTIFY_CHANGE_RESOLUTION_MILLIS = 500;
+    public static final int CHECK_RESOLUTION_MILLIS = 100;
+    public static final int NOTIFY_CHANGE_RESOLUTION_MILLIS = 1000;
     public static final int TIME_RESOLUTION_MILLIS = 50;
 
     private final static List<ChangeListener> changeListeners = new ArrayList<ChangeListener>();

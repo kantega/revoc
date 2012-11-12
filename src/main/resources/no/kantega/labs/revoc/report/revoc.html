@@ -24,13 +24,23 @@
 
 <body>
 
-<div id="canvasscroll">
-    <canvas id="canvas"></canvas>
+<div id="sourceinfo">
+    <div id="pixelsheading">Hide navigation</div>
+    <span id="sourcetitle"></span> <span id="sourcecoverage"></span> <a href="#" id="showclasses">Show all</a>
+</div>
+<div id="infostrut"></div>
+
+
+<div id="source"></div>
+<div id="overview"></div>
+
+<div id="pixels">
+    <canvas id="smallCanvas"></canvas>
+    <div id="canvasscroll">
+        <canvas id="canvas" onm></canvas>
+    </div>
 </div>
 
-<div id="sourcecolumn">
-    <div id="source"></div>
-</div>
 
 <div id="footer">
     <span id="coverage"></span>
@@ -39,5 +49,7 @@
 </div>
 <script type="text/javascript" src="revoc.js"></script>
 
+
 </body>
+
 </html>

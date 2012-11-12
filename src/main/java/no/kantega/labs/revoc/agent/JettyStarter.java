@@ -1,6 +1,7 @@
 package no.kantega.labs.revoc.agent;
 
 import no.kantega.labs.revoc.source.CompondSourceSource;
+import no.kantega.labs.revoc.source.DirectorySourceSource;
 import no.kantega.labs.revoc.source.MavenProjectSourceSource;
 import no.kantega.labs.revoc.source.MavenSourceArtifactSourceSource;
 import no.kantega.labs.revoc.web.RevocWebSocketServlet;
@@ -45,7 +46,10 @@ public class JettyStarter {
         ctx.addServlet(RevocWebSocketServlet.class, "/ws");
         collection.addHandler(ctx);
 
-        collection.addHandler(new WebHandler(new CompondSourceSource(new MavenProjectSourceSource(), new MavenSourceArtifactSourceSource())));
+        collection.addHandler(new WebHandler(new CompondSourceSource(
+                new DirectorySourceSource(),
+                new MavenProjectSourceSource(),
+                new MavenSourceArtifactSourceSource())));
 
 
         server.setHandler(collection);

@@ -14,18 +14,20 @@
  * limitations under the License.
  */
 
+html {
+    height: 100%;
+}
 body {
     font-family:sans-serif;
     margin: 0;
+    height: 100%;
 }
 pre {
     margin:0;
-    white-space: pre-wrap;
 }
 
 td.linenumber, td.numvisits, td.conditional, td.lastvisit {
     text-align: right;
-    vertical-align: top;
     background-color: #F0F0F0;
     border-right: 1px solid #DCDCDC;
     font-size:smaller;
@@ -56,6 +58,8 @@ tr.nonvisited td.numvisits, tr.nonvisited td.conditional, tr.nonvisited td.lastv
     border-right: 1px solid #FF9595;
 }
 
+
+
 tr.visited td.numvisits, tr.nonbranched td.numvisits  {
     background-color: #80FF80;
 }
@@ -72,43 +76,37 @@ table td {
     font-weight:bold;
 }
 
-#pixels {
-    position: fixed;
-    right: 20px;
-    top: 35px;
-    width: 400px;
-    height: 100%;
+
+.prfvisits, .prftime {
+    text-align:right;
 }
 
-#pixelsheading {
-    float:right;
-    cursor: pointer;
-    margin-right: 2em;
-}
-
-#pixels.hidden #smallCanvas, #pixels.hidden #canvasscroll {
-    display: none;
-}
-
-#smallCanvas {
-    position: fixed;
-    right: 440px;
-    border: 3px solid gray;
-    opacity: 0.80;
-    cursor: pointer;
+.expdr {
+    border: 1px solid black;
+    padding: 0.1em;
+    display: inline-block;
+    height: 0.5em;
+    width: 0.5em;
+    margin-right: 0.5em;
+    text-align:center;
+    vertical-align:middle;
 }
 
 #canvasscroll {
-    float:right;
+    position: fixed;
     width: 400px;
+    right: 20px;
+    top: 20px;
     max-width: 100%;
     max-height: 90%;
-    overflow: hidden;
+    overflow: auto;
 }
+
+
 
 #canvas {
     cursor:pointer;
-    opacity: 0.80;
+    opacity: 0.85;
 }
 
 #footer {
@@ -129,75 +127,24 @@ table td {
     margin-right: 1em;
 }
 
+#smallCanvas {
+    position: fixed;
+    right: 440px;
+    top: 20px;
+    border: 3px solid gray;
+    opacity: 0.75;
+    display: none;
+    cursor: pointer;
+}
+
 #sourceinfo {
     position: fixed;
     width:100%;
-    height: 20px;
+    height: 100px;
     border-bottom: 1px solid black;
-    background-color:rgba(240, 240, 240, 0.85);
+    background-color:rgba(240, 240, 240, 0.8);
     padding: 5px;
-}
-
-#infostrut {
-    height: 31px;
-    background-color:rgba(240, 240, 240, 1.0);
 }
 #sourcetitle {
     font-weight: bold;
 }
-
-#overview {
-    padding: 1em;
-}
-
-#overview table {
-}
-
-#overview td {
-    text-align: right;
-    border: 1px solid #d3d3d3;
-    border: 1px solid #d3d3d3;
-    border-top:none;
-    border-left:none;
-    padding: 0.3em;
-    width: 6em;
-}
-
-#overview div.package {
-    font-size: 80%;
-    color:gray;
-}
-#overview div.className {
-    padding-top: 0.2em;
-    padding-left: 0.2em;
-
-}
-
-#overview td.label {
-    text-align: left;
-    border-left: 1px solid #d3d3d3;
-}
-
-#overview tr.total td {
-    border-top: 1px solid #d3d3d3;
-}
-#overview tr.total {
-    font-weight: bold;
-}
-
-#overview tr.class td {
-    cursor: pointer;
-}
-
-#overview tr.even {
-    background-color: #e9e9e9;
-}
-
-#overview tr.class:hover td  {
-    background-color: #b0c4de;
-}
-
-th.sortable {
-    cursor: pointer;
-}
-

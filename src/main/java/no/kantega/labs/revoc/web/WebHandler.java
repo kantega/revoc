@@ -20,9 +20,6 @@ import no.kantega.labs.revoc.registry.Registry;
 import no.kantega.labs.revoc.report.HtmlReport;
 import no.kantega.labs.revoc.source.SourceSource;
 import org.apache.commons.io.IOUtils;
-import org.eclipse.jetty.continuation.Continuation;
-import org.eclipse.jetty.continuation.ContinuationListener;
-import org.eclipse.jetty.continuation.ContinuationSupport;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.handler.AbstractHandler;
@@ -31,7 +28,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
-import java.util.BitSet;
 
 /**
  *
@@ -42,9 +38,15 @@ public class WebHandler extends AbstractHandler {
 
     public WebHandler(SourceSource sourceSource) {
         this.sourceSource = sourceSource;
-        File resources = new File("src/main/resources/no/kantega/labs/revoc/report");
-        if(resources.exists()) {
-            this.resources = resources;
+        String src = System.getProperty("revoc.dev");
+        if(src != null) {
+            File srcFile = new File(src);
+            if(srcFile.exists()) {
+                File resources = new File(src, "src/main/resources/no/kantega/labs/revoc/report");
+                if(resources.exists()) {
+                    this.resources = resources;
+                }
+            }
         }
     }
 
@@ -80,48 +82,7 @@ public class WebHandler extends AbstractHandler {
 
             }else if ("/json".equals(request.getRequestURI())) {
                 response.setContentType("application/json");
-                if(request.getParameter("hang") != null) {
-
-                    if(request.getAttribute("newData") == null) {
-                        final Continuation continuation = ContinuationSupport.getContinuation(request);
-
-
-                        if(continuation.isExpired()) {
-                            response.sendError(HttpServletResponse.SC_REQUEST_TIMEOUT, "Timeout!");
-                            return;
-                        }
-
-                        continuation.suspend();
-
-
-                        final Registry.ChangeListener changeListener = new Registry.ChangeListener() {
-                            public void onChange(BitSet bs) {
-                                continuation.setAttribute("newData", Boolean.TRUE);
-                                continuation.resume();
-                            }
-                        };
-
-                        continuation.addContinuationListener(new ContinuationListener() {
-                            public void onComplete(Continuation continuation) {
-                                Registry.removeChangeListener(changeListener);
-                            }
-
-                            public void onTimeout(Continuation continuation) {
-                                Registry.removeChangeListener(changeListener);
-                            }
-                        });
-
-                        Registry.addChangeListener(changeListener);
-                        return;
-                    }
-
-                    new JsonHandler().writeJson(Registry.getCoverageData(), response.getWriter());
-                    return;
-
-
-                } else {
-                    new JsonHandler().writeJson(Registry.getCoverageData(), response.getWriter());
-                }
+                new JsonHandler().writeJson(Registry.getCoverageData(), response.getWriter());
                 return;
             }else if ("/".equals(request.getRequestURI())) {
                 response.setContentType("text/html");
@@ -133,7 +94,7 @@ public class WebHandler extends AbstractHandler {
                 return;
             }else if ("/profiler".equals(request.getRequestURI())) {
                 response.setContentType("text/html");
-                IOUtils.copy(HtmlReport.class.getResourceAsStream("profiler.html"), response.getOutputStream());
+                IOUtils.copy(getResourceStream("profiler.html"), response.getOutputStream());
                 return;
             }else if ("/revoc.css".equals(request.getRequestURI())) {
                 response.setContentType("text/css");

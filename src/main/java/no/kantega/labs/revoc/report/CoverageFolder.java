@@ -27,7 +27,7 @@ import java.util.*;
  */
 public class CoverageFolder {
     public CoverageData fold(CoverageData coverageData) {
-        Map<String, List<Integer>> sources = new TreeMap<String, List<Integer>> ();
+        Map<String, List<Integer>> sources = new LinkedHashMap<String, List<Integer>>();
 
         Map<String, Integer> topLevels = new TreeMap<String, Integer>();
 
