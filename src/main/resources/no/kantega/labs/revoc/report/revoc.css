@@ -197,8 +197,20 @@ table td {
     background-color: #b0c4de;
 }
 
-th.sortable {
+tr.sortable th {
     cursor: pointer;
+}
+
+tr.sortable th.selected {
+    background-color: #b0c4de;
+}
+
+tr.sortable th:hover {
+    background-color: #d3d3d3;
+}
+
+tr.sortable th.selected:hover {
+    background-color: #b0c4de;
 }
 
 .fullscreen {

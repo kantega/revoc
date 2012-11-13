@@ -724,6 +724,11 @@ window.addEventListener("load", function() {
             }
             overviewSort = sf;
             console.log("Overviewsort is: " + typeof(overviewSort))
+            var sortables = document.querySelectorAll("tr.sortable th");
+            for(var i = 0; i < sortables.length;i++) {
+                sortables[i].setAttribute("class", "");
+            }
+            evt.target.setAttribute("class", "selected");
             showOverview();
         }
     }
