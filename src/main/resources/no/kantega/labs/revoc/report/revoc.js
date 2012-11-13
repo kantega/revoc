@@ -45,6 +45,8 @@ window.addEventListener("load", function() {
 
     var redrawTimeout;
 
+    var listeners = new Array();
+
     var ws = {
         _ws: null,
 
@@ -90,12 +92,7 @@ window.addEventListener("load", function() {
             console.log("New data classes: " + size + " / " + m.data.length);
 
             if(size > 0) {
-                var first = !data;
                 gotNewData(newData);
-                if (first) {
-                    console.log("Getting source for: " +idx2cn[0] + ", line " + 0);
-                    getSourceReport({className: idx2cn[0], lineId: 0});
-                }
             }
         },
 
@@ -110,6 +107,7 @@ window.addEventListener("load", function() {
     function gotNewData(newData) {
 
         var changed = false;
+        var first = !data;
         if(currentClick) {
             var newDataHasClass = newData[currentClick.className] != undefined;
             if(data && newDataHasClass && isClassChanged(data, newData, currentClick.className)) {
@@ -135,14 +133,10 @@ window.addEventListener("load", function() {
 
         }
 
-        if (changed) {
-            getSourceReport(currentClick, false);
+        for(var i = 0; i < listeners.length; i++) {
+            var listener = listeners[i];
+            listener.apply(listener, [changed, first]);
         }
-        drawData();
-        if(redrawTimeout) {
-            clearTimeout(redrawTimeout);
-        }
-        redrawTimeout = setTimeout(drawData, 11000)
     }
 
     function isClassChanged(data, newData, className) {
@@ -324,8 +318,6 @@ window.addEventListener("load", function() {
             xhr.send(null)
             currentClick = clsLine;
 
-        } else {
-            updateSource();
         }
     }
 
@@ -370,9 +362,11 @@ window.addEventListener("load", function() {
 
             }
             updateTime();
+            setFullScreen("source");
         }
     }
     function showSource(sourceText, clsLine, scroll) {
+
 
         source.innerHTML = "";
         $("#sourcetitle").innerHTML = clsLine.className.replace(/\//g,".");
@@ -423,8 +417,7 @@ window.addEventListener("load", function() {
             tbl.appendChild(line)
         }
 
-        source.style.display = "block";
-
+        setFullScreen("source");
         updateSource();
 
         if (scroll) {
@@ -461,7 +454,7 @@ window.addEventListener("load", function() {
 
     function canvasclicked(evt) {
         evt.preventDefault();
-        $("#source").style.display="block";
+        setFullScreen("source");
         var clsLine = getClassAndLine(evt);
 
         if (!currentClick || currentClick.className != clsLine.className) {
@@ -586,7 +579,7 @@ window.addEventListener("load", function() {
 
 
     function showOverview(evt) {
-        $("#source").style.display = "none";
+
         document.body.scrollTop =0;
         if(evt)
             evt.preventDefault();
@@ -634,7 +627,6 @@ window.addEventListener("load", function() {
         while(overview.firstChild) {
             overview.removeChild(overview.firstChild);
         }
-        overview.style.display="block";
 
         var table = document.createElement("table");
 
@@ -711,7 +703,6 @@ window.addEventListener("load", function() {
             var td = document.createElement("td");
             tr.setAttribute("rclass", a[0]);
             tr.addEventListener("click", function(evt) {
-                $("#overview").style.display="none";
 
                 var className = this.getAttribute("rclass");
                 var line = 0;
@@ -722,7 +713,7 @@ window.addEventListener("load", function() {
                         break;
                     }
                 }
-                $("#source").style.display="none";
+
                 getSourceReport({className: className,lineId:line}, true)
             });
             var li = a[0].lastIndexOf("/");
@@ -753,9 +744,58 @@ window.addEventListener("load", function() {
 
         overview.appendChild(table);
 
-
+        setFullScreen("overview");
 
     }
+
+    function isFullScreen(id) {
+        return "true" == document.querySelector("#"+id).getAttribute("isFullScreen")
+    }
+    function setFullScreen(id) {
+        var nodeList = document.querySelectorAll(".fullscreen");
+        for(var i = 0, l = nodeList.length; i < l ; i++) {
+            nodeList[i].style.display = "none";
+            nodeList[i].setAttribute("isFullScreen", false);
+        }
+        document.querySelector("#"+id).style.display = "block";
+        document.querySelector("#"+id).setAttribute("isFullScreen", "true");
+    }
+
+    listeners.push(function(changed, first) {
+        if (changed) {
+            getSourceReport(currentClick, false);
+        }
+        drawData();
+        if(redrawTimeout) {
+            clearTimeout(redrawTimeout);
+        }
+        redrawTimeout = setTimeout(drawData, 11000)
+    });
+
+    listeners.push(function(changed, first) {
+        if(isFullScreen("source")) {
+            if (first) {
+                console.log("Getting source for: " +idx2cn[0] + ", line " + 0);
+                getSourceReport({className: idx2cn[0], lineId: 0});
+            }
+        }
+    });
+
+    listeners.push(function(changed, first) {
+        if(isFullScreen("overview")) {
+            console.log("Updating report");
+            showOverview();
+        }
+    });
+
+    listeners.push(function(changed, first) {
+        if(isFullScreen("source") && currentClick) {
+            updateSource();
+        }
+    });
+
+
+    setFullScreen("source");
 
     if (!ws.join()) {
         updateData({hang: false,

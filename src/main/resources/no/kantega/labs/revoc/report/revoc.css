@@ -201,3 +201,6 @@ th.sortable {
     cursor: pointer;
 }
 
+.fullscreen {
+    display: none;
+}
