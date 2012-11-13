@@ -312,11 +312,12 @@ window.addEventListener("load", function() {
             xhr.onreadystatechange = function() {
                 if (xhr.readyState == 4) {
                     currentSource = xhr.responseText;
+                    currentClick = clsLine;
                     showSource(xhr.responseText, clsLine, scroll);
                 }
             };
             xhr.send(null)
-            currentClick = clsLine;
+
 
         }
     }
@@ -340,7 +341,7 @@ window.addEventListener("load", function() {
     }
 
     function updateSource() {
-
+        console.log("Updatesource")
         if(currentClick) {
 
             var cls = data[currentClick.className];
@@ -367,7 +368,7 @@ window.addEventListener("load", function() {
     }
     function showSource(sourceText, clsLine, scroll) {
 
-
+        console.log("showSource")
         source.innerHTML = "";
         $("#sourcetitle").innerHTML = clsLine.className.replace(/\//g,".");
         $("#sourcecoverage").innerHTML = getCoverage(clsLine.className) +"%";
@@ -396,12 +397,6 @@ window.addEventListener("load", function() {
             nv.setAttribute("class", "numvisits");
             nv.setAttribute("id", "nv-" +(l+1));
             line.appendChild(nv);
-
-            /*
-            var cond = document.createElement("td");
-            cond.setAttribute("class", "conditional");
-            line.appendChild(cond);
-            */
 
             var time = document.createElement("td");
             time.setAttribute("id", "time-" +(l+1));
@@ -574,7 +569,7 @@ window.addEventListener("load", function() {
         return total;
     }
 
-    var desc = 1;
+    var desc = -1;
     var overviewSort = null;
 
 
@@ -623,127 +618,69 @@ window.addEventListener("load", function() {
 
 
 
-        var overview = $("#overview");
-        while(overview.firstChild) {
-            overview.removeChild(overview.firstChild);
-        }
+        var table = $("#overview table");
+        var rows = document.querySelectorAll("#overview table tr.class");
+        var c = rows.length;
 
-        var table = document.createElement("table");
+        var colIds = ["run", "unrun", "lines", "cover", "sum", "max"];
 
+        while(table.getElementsByTagName("tr").length < array.length +2) {
+            var rowId = c++;
+            var tr = document.createElement("tr");
 
-        var tr = document.createElement("tr");
-        var name = createElement("th", "Name");
+            table.appendChild(tr);
+            tr.setAttribute("id", "orow-" + rowId);
+            tr.setAttribute("class", "class " + (rowId %2 == 0 ? "even" : "odd"));
 
-        name.addEventListener("click", function() {
-            overviewSort = null;
-            showOverview();
-        });
-
-        tr.appendChild(name);
-        var run = createElement("th", "Run");
-        run.setAttribute("class", "sortable");
-        run.addEventListener("click", function() {
-            desc = desc *-1;
-            overviewSort = function(a, b) {return (desc*(b[1] - a[1]))};
-            showOverview();
-        });
-        tr.appendChild(run);
-
-        var unRun = createElement("th", "UnRun");
-        unRun.setAttribute("class", "sortable");
-        unRun.addEventListener("click", function() {
-            desc = desc *-1;
-            overviewSort = function(a, b) {return (desc*(b[2] - a[2]))};
-            showOverview();
-        });
-        tr.appendChild(unRun);
-        var linesCol = createElement("th", "Lines");
-        linesCol.setAttribute("class", "sortable");
-        linesCol.addEventListener("click", function() {
-            desc = desc *-1;
-            overviewSort = function(a, b) {return (desc*(b[3] - a[3]))};
-            showOverview();
-        });
-        tr.appendChild(linesCol);
-        var coverage = createElement("th", "Cover");
-        coverage.setAttribute("class", "sortable");
-        coverage.addEventListener("click", function() {
-            desc = desc *-1;
-            overviewSort = function(a, b) {return (desc*(b[4] - a[4]))};
-            showOverview();
-        });
-        tr.appendChild(coverage);
-        var sumCol = createElement("th", "Sum");
-        sumCol.setAttribute("class", "sortable");
-        sumCol.addEventListener("click", function() {
-            desc = desc *-1;
-            overviewSort = function(a, b) {return (desc*(b[5] - a[5]))};
-            showOverview();
-        });
-        tr.appendChild(sumCol);
-
-        var maxi = createElement("th", "Max");
-        maxi.addEventListener("click", function() {
-            desc = desc *-1;
-            overviewSort = function(a, b) {return (desc*(b[6] - a[6]))};
-            showOverview();
-        });
-        maxi.setAttribute("class", "sortable");
-
-        tr.appendChild(maxi);
-
-        table.appendChild(tr);
-
-        table.appendChild(createTotalLine(totalNumLinesRun, totalNumLinesUnRun, totalNumLines, totalSumRun, totalMax));
-
-        for(var i= 0,m=array.length; i<m; i++) {
-            var a = array[i];
-            tr = document.createElement("tr");
-            tr.setAttribute("class", "class " + (i%2 == 0 ? "even" : "odd"));
             var td = document.createElement("td");
-            tr.setAttribute("rclass", a[0]);
-            tr.addEventListener("click", function(evt) {
-
-                var className = this.getAttribute("rclass");
-                var line = 0;
-                var lines = data[className][1];
-                for(var l = 0, m=lines.length; l < m; l++) {
-                    if(lines[l] != -1) {
-                        line = l;
-                        break;
-                    }
-                }
-
-                getSourceReport({className: className,lineId:line}, true)
-            });
-            var li = a[0].lastIndexOf("/");
-
-            var pack = createElement("div", a[0].substr(0, li).replace(/\//g,"."));
+            var pack = createElement("div", "");
             pack.setAttribute("class", "package")
+            pack.setAttribute("id", "orow-" + rowId + "-packagename");
             td.appendChild(pack);
-            var cName = createElement("div", a[0].substr(li+1));
+            var cName = createElement("div", "");
             cName.setAttribute("class", "className")
+            cName.setAttribute("id", "orow-" + rowId + "-classname");
+
             td.appendChild(cName);
             td.setAttribute("class", "label");
+
             tr.appendChild(td);
-            table.appendChild(tr);
 
-            tr.appendChild(createElement("td", a[1]));
-            tr.appendChild(createElement("td", a[2]));
-            tr.appendChild(createElement("td", a[3]));
-            tr.appendChild(createElement("td", a[4] +"%"));
-            tr.appendChild(createElement("td", a[5]));
-            tr.appendChild(createElement("td", a[6]));
-
-
+            for(var i in colIds) {
+                var td = document.createElement("td");
+                td.setAttribute("id", "orow-" + rowId + "-" + colIds[i]);
+                tr.appendChild(td);
+            }
         }
 
+        for(var i = 0; i < array.length; i++) {
+            var a = array[i];
+            $("#orow-" + i).setAttribute("rclass", a[0]);
+            $("#orow-" + i +"-packagename").innerHTML = a[0].substr(0, a[0].lastIndexOf("/")).replace(/\//g, ".");
+            $("#orow-" + i +"-classname").innerHTML = a[0].substr(a[0].lastIndexOf("/")+1);
+            $("#orow-" + i +"-run").innerHTML = a[1];
+            $("#orow-" + i +"-unrun").innerHTML = a[2];
+            $("#orow-" + i +"-lines").innerHTML = a[3];
+            $("#orow-" + i +"-cover").innerHTML = a[4];
+            $("#orow-" + i +"-sum").innerHTML = a[5];
+            $("#orow-" + i +"-max").innerHTML = a[6];
+        }
 
-        table.appendChild(createTotalLine(totalNumLinesRun, totalNumLinesUnRun, totalNumLines, totalSumRun, totalMax));
+        var totals = {
+            run : totalNumLinesRun,
+            unrun : totalNumLinesUnRun,
+            lines: totalNumLines,
+            cover: Math.round(totalNumLinesRun * 100 / totalNumLines) + "%",
+            sum: totalSumRun,
+            max: totalMax
+        };
 
-
-        overview.appendChild(table);
-
+        for(var t in totals) {
+            var totalRuns = document.querySelectorAll(".total-" + t);
+            for(var i = 0; i < totalRuns.length; i++) {
+                totalRuns[i].innerHTML = totals[t];
+            }
+        }
         setFullScreen("overview");
 
     }
@@ -761,6 +698,54 @@ window.addEventListener("load", function() {
         document.querySelector("#"+id).setAttribute("isFullScreen", "true");
     }
 
+    function sortFunction(idx) {
+        return function(a, b) {
+            return desc * (a[idx] -b[idx]);
+        }
+    }
+    var sortFunctions = {
+        name : null,
+        run : sortFunction(1),
+        unrun : sortFunction(2),
+        lines : sortFunction(3),
+        cover : sortFunction(4),
+        sum : sortFunction(5),
+        max : sortFunction(6)
+    }
+
+    function doSort(evt) {
+        var id = evt.target.getAttribute("id");
+        if(id) {
+            var sf = sortFunctions[id.substr("sort-".length)];
+            if(overviewSort && sf == overviewSort) {
+                desc = desc *-1;
+            } else {
+                desc = -1;
+            }
+            overviewSort = sf;
+            console.log("Overviewsort is: " + typeof(overviewSort))
+            showOverview();
+        }
+    }
+
+    $("#overview table").addEventListener("click", function(evt) {
+
+        var tr = evt.target;
+        while(tr.tagName != "TR" && tr.tagName != "tr" ) {
+            tr = tr.parentNode;
+        }
+
+        var id = tr.getAttribute("id");
+
+        if(id && id.indexOf("orow-") != -1) {
+            var rClass = tr.getAttribute("rclass");
+            var lines = data[rClass][1];
+            getSourceReport({className: rClass, lineId: lines[0]}, true);
+
+        }
+
+
+    });
     listeners.push(function(changed, first) {
         if (changed) {
             getSourceReport(currentClick, false);
@@ -794,6 +779,11 @@ window.addEventListener("load", function() {
         }
     });
 
+    var sortNames  = ["name", "run", "unrun", "lines", "cover", "sum", "max"];
+
+    for(var i in sortNames) {
+        $("#sort-" +sortNames[i]).addEventListener("click", doSort);
+    }
 
     setFullScreen("source");
 
@@ -835,11 +825,12 @@ window.addEventListener("load", function() {
 
     $("#pixelsheading").addEventListener("click", function() {
         var p = $("#pixels");
-        if(p.getAttribute("class")) {
-            p.setAttribute("class", "");
+
+        if(p.style.display == "none") {
+            p.style.display = "block";
             this.innerHTML ="Hide navigation"
         } else {
-            p.setAttribute("class", "hidden");
+            p.style.display = "none";
             this.innerHTML ="Show navigation"
         }
 
