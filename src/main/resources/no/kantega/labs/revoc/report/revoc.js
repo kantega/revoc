@@ -39,7 +39,7 @@ window.addEventListener("load", function() {
     var idx2cn;
     var cn2idx;
 
-    var smallCanvas, canvas, ctx, smallCtx, source, canvasScroll;
+    var smallCanvas, canvas, ctx, smallCtx, source, canvasScroll, pixels;
 
     var smallCanvasDragging = false;
 
@@ -105,6 +105,10 @@ window.addEventListener("load", function() {
 
 
     function gotNewData(newData) {
+        pixels.style.display ="block";
+        $("#showclasses").style.display="inline";
+        $("#loading").style.display="none";
+        $("#pixelsheading").style.display="block";
 
         var changed = false;
         var first = !data;
@@ -755,11 +759,15 @@ window.addEventListener("load", function() {
         if (changed) {
             getSourceReport(currentClick, false);
         }
-        drawData();
-        if(redrawTimeout) {
-            clearTimeout(redrawTimeout);
+        if(pixels.style.display != "none") {
+            drawData();
+            if(redrawTimeout) {
+                clearTimeout(redrawTimeout);
+            }
+            redrawTimeout = setTimeout(drawData, 11000)
+        } else {
+            console.log("Lost draw")
         }
-        redrawTimeout = setTimeout(drawData, 11000)
     });
 
     listeners.push(function(changed, first) {
@@ -809,6 +817,8 @@ window.addEventListener("load", function() {
     canvas = $("#canvas");
     canvasScroll = $("#canvasscroll");
     source = $("#source");
+    pixels = $("#pixels");
+
     ctx = canvas.getContext("2d");
 
 
@@ -829,13 +839,12 @@ window.addEventListener("load", function() {
     smallCanvas.addEventListener("mousemove", smallCanvasMove);
 
     $("#pixelsheading").addEventListener("click", function() {
-        var p = $("#pixels");
 
-        if(p.style.display == "none") {
-            p.style.display = "block";
+        if(pixels.style.display == "none") {
+            pixels.style.display = "block";
             this.innerHTML ="Hide navigation"
         } else {
-            p.style.display = "none";
+            pixels.style.display = "none";
             this.innerHTML ="Show navigation"
         }
 
