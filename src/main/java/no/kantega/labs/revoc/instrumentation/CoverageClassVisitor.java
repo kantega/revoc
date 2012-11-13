@@ -47,7 +47,7 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
     private boolean trackLines = true;
     private boolean trackTime = true;
     private boolean trackBranches = false;
-    private boolean profile = false;
+    private boolean profile = true;
     private int access;
 
     private int maxLocalVariableReportLoad = 10000;
