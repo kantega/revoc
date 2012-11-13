@@ -18,12 +18,17 @@ import java.util.zip.ZipEntry;
  *
  */
 public class DirectorySourceSource implements SourceSource {
-    private Map<String, File> sourceMap;
+    private Map<String, File> sourceMap = new HashMap<String, File>();;
     private Map<String, JarFile> jarFiles = new HashMap<String, JarFile>();
 
     public DirectorySourceSource() {
+
+
         String revSources = System.getenv("REVOC_SOURCES");
-        sourceMap = new HashMap<String, File>();
+        if(revSources == null) {
+            revSources = System.getProperty("revoc.sources");
+        }
+
 
         if (revSources != null) {
             File revSourceDirectory = new File(revSources);
