@@ -59,19 +59,29 @@ public class RevocWebSocketServlet extends WebSocketServlet implements Registry.
         new JsonHandler().writeJson(Registry.getCoverageData(), new PrintWriter(sw), changed);
         String msg = sw.toString();
 
-        for(TimeWebSocket ws : this.members) {
-            ws.sendLatestData(msg);
+        for(TimeWebSocket ws : members) {
+            try {
+                ws.sendLatestData(msg);
+            } catch (Exception e) {
+                log("Exception writing message to websocket. Addr: " + ws.getRemoteAddr());
+            }
         }
     }
 
     @Override
     public WebSocket doWebSocketConnect(HttpServletRequest request, String protocol) {
-        return new TimeWebSocket();
+        return new TimeWebSocket(request.getRemoteAddr());
     }
 
 
     private class TimeWebSocket implements WebSocket.OnTextMessage {
         private Connection connection;
+        private final String remoteAddr;
+
+        public TimeWebSocket(String remoteAddr) {
+
+            this.remoteAddr = remoteAddr;
+        }
 
         @Override
         public void onOpen(Connection connection) {
@@ -99,6 +109,10 @@ public class RevocWebSocketServlet extends WebSocketServlet implements Registry.
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
+        }
+
+        public String getRemoteAddr() {
+            return remoteAddr;
         }
     }
 }
