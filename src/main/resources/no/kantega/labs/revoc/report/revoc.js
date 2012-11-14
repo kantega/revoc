@@ -105,13 +105,16 @@ window.addEventListener("load", function() {
 
 
     function gotNewData(newData) {
-        pixels.style.display ="block";
-        $("#showclasses").style.display="inline";
-        $("#loading").style.display="none";
-        $("#pixelsheading").style.display="block";
 
         var changed = false;
         var first = !data;
+        if(first) {
+            pixels.style.display ="block";
+            $("#showclasses").style.display="inline";
+            $("#loading").style.display="none";
+            $("#pixelsheading").style.display="block";
+
+        }
         if(currentClick) {
             var newDataHasClass = newData[currentClick.className] != undefined;
             if(data && newDataHasClass && isClassChanged(data, newData, currentClick.className)) {
