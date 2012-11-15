@@ -64,9 +64,7 @@ public abstract class Registry {
 
     public static Collection<Frame> getFrames() {
         Collection<FrameMap> frameMaps;
-        synchronized (threadMap) {
-            frameMaps = new HashSet<FrameMap>(threadMap.values());
-        }
+        frameMaps = new HashSet<FrameMap>(threadMap.values());
 
 
         Frame top = new Frame(-1);
@@ -609,9 +607,15 @@ public abstract class Registry {
         FrameMap frameMap = threadMap.get(threadId);
 
         if (frameMap == null) {
-            threadMap.putIfAbsent(threadId, frameMap = new FrameMap());
+            FrameMap prev = threadMap.putIfAbsent(threadId, frameMap = new FrameMap());
+            if(prev != null) {
+                return prev;
+            } else {
+                return frameMap;
+            }
+        } else {
+            return frameMap;
         }
-        return frameMap;
     }
 
 

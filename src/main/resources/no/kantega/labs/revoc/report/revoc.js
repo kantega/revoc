@@ -212,7 +212,7 @@ window.addEventListener("load", function() {
 
         if (width < 10) {
             zoom = 10;
-        } else if (width < 200) {
+        } else if (width < 120) {
             zoom = 3;
         }
         width = width * zoom;
@@ -582,7 +582,7 @@ window.addEventListener("load", function() {
 
     function showOverview(evt) {
 
-        document.body.scrollTop =0;
+
         if(evt)
             evt.preventDefault();
 
@@ -668,7 +668,7 @@ window.addEventListener("load", function() {
             $("#orow-" + i +"-run").innerHTML = a[1];
             $("#orow-" + i +"-unrun").innerHTML = a[2];
             $("#orow-" + i +"-lines").innerHTML = a[3];
-            $("#orow-" + i +"-cover").innerHTML = a[4];
+            $("#orow-" + i +"-cover").innerHTML = a[4] +"%";
             $("#orow-" + i +"-sum").innerHTML = a[5];
             $("#orow-" + i +"-max").innerHTML = a[6];
         }
@@ -688,7 +688,10 @@ window.addEventListener("load", function() {
                 totalRuns[i].innerHTML = totals[t];
             }
         }
-        setFullScreen("overview");
+        if(!isFullScreen("overview")) {
+            document.body.scrollTop =0;
+            setFullScreen("overview");
+        }
 
     }
 

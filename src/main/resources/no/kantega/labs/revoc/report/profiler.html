@@ -19,6 +19,7 @@
 
 <head>
     <link href="revoc.css" rel="stylesheet">
+    <link href="profiler.css" rel="stylesheet">
     <style type="text/css">
         body {
             margin:10px;
@@ -58,16 +59,38 @@
             root.innerHTML =  "";
 
             var tbl = document.createElement("table");
-            tbl.innerHTML = "<tr><td width=100>Time</td><td width=100>Invocations</td><td></td></tr>"
+            tbl.innerHTML = "<tr><td width=100>Time</td><td width=100>Self</td><td width=100>Invocations</td><td></td></tr>"
             var frames = data.frames;
 
             frames.sort(framesByTime);
 
             for(var i = 0; i < frames.length; i++) {
-                drawFrame(tbl, frames[i], 0);
+                drawFrame(tbl, frames[i], 0, 0, 0);
             }
 
             root.appendChild(tbl);
+
+            tbl.addEventListener("click", function(evt) {
+                var cls = evt.target.getAttribute("class");
+                if(cls == "expdr") {
+                    var expdr = evt.target;
+
+                    var tr = expdr;
+                    while(tr.tagName != "TR") {
+                        tr = tr.parentNode;
+                    }
+                    var frameIdx = tr.getAttribute("frame");
+
+                    var rows = tbl.getElementsByTagName("tr");
+
+                    expdr.expanded = !expdr.expanded;
+                    expdr.innerHTML = (expdr.expanded ? "-" : "+") +" ";
+                    setRowExpanded(tr, expdr.expanded);
+
+
+                }
+
+            });
         }
 
         function formatMicroTime(micros) {
@@ -80,10 +103,24 @@
             }
         }
 
-        function drawFrame(tbl, frame, level) {
+        var frameIdx = 0;
+        function drawFrame(tbl, frame, level, parentFrame) {
+            var rowIdx = ++frameIdx
             var row = document.createElement("tr");
+            row.setAttribute("id", "frame-" +rowIdx);
+            row.setAttribute("parentFrame", parentFrame);
+
+
+            var childFrames = frame[5];
+            childFrames.sort(framesByTime);
+
+            var childSum =0;
+            for(var i = 0,l=childFrames.length; i < l; i++) {
+                childSum += childFrames[i][2];
+            }
+
             tbl.appendChild(row);
-            row.innerHTML = "<td class=prftime>" +formatMicroTime(frame[2]) + "</td><td class=prfvisits>" +frame[4] +"</td>";
+            row.innerHTML = "<td class=prftime>" +formatMicroTime(frame[2]) + "</td><td class=prftime>" +formatMicroTime(frame[2]-childSum) + "</td><td class=prfvisits>" +frame[4] +"</td>";
 
 
             var node = document.createElement("td");
@@ -93,8 +130,9 @@
             span.setAttribute("class", "frame");
             var expdr = document.createElement("span");
             expdr.setAttribute("class", "expdr");
+            row.expdr = expdr;
 
-            expdr.innerHTML = "-";
+            expdr.innerHTML = "- ";
             span.appendChild(expdr);
             var txt = document.createTextNode(data.classNames[frame[0]] +"." +data.methods[frame[0]][frame[1]]);
             span.appendChild(txt);
@@ -109,25 +147,18 @@
             node.appendChild(span);
 
 
-            var childFrames = frame[5];
-            childFrames.sort(framesByTime);
-
             var childRows = new Array();
+
+            for(var i = 0,l=childFrames.length; i < l; i++) {
+                childRows.push(drawFrame(tbl, childFrames[i], level+1, rowIdx));
+            }
+
             row.childRows = childRows;
 
-            for(var i = 0; i < childFrames.length; i++) {
-                childRows.push(drawFrame(tbl, childFrames[i], level+1));
-            }
+
             
             expdr.expanded = true;
-            expdr.onclick = function(evt) {
-                for(var i = 0; i < childRows.length; i++) {
-                    setRowExpanded(childRows[i], expdr.expanded);
 
-                }
-                expdr.expanded = !expdr.expanded;
-                expdr.innerHTML = expdr.expanded ? "-" : "+"; 
-            }
 
             if(childRows.length == 0) {
                 expdr.style.visibility = "hidden";
@@ -137,13 +168,22 @@
         }
 
         function setRowExpanded(row, expanded) {
-            row.style.display = expanded ? "none" : "table-row";
-            if(row.childRows) {
-                for(var i in row.childRows) {
-                    setRowExpanded(row.childRows[i], expanded);
-                }
+
+            var frameIdx = row.getAttribute("id").substr("frame-".length);
+            var frameParent = row.getAttribute("parentFrame");
+            var childRows = row.childRows;
+
+            for(var i = 0,l=childRows.length; i<l;i++) {
+                var child = childRows[i];
+                child.style.display = expanded ? "table-row" : "none";
+
+                var expdr = row.expdr;
+                expdr.innerHTML = expanded ? "-" : "+";
+                expdr.expanded = expanded;
+                setRowExpanded(child, expanded);
             }
         }
+
 
     </script>
 </head>

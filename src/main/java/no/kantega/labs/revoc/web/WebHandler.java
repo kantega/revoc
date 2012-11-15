@@ -34,10 +34,12 @@ import java.io.*;
  */
 public class WebHandler extends AbstractHandler {
     private final SourceSource sourceSource;
+    private final String[] packages;
     private File resources;
 
-    public WebHandler(SourceSource sourceSource) {
+    public WebHandler(SourceSource sourceSource, String[] packages) {
         this.sourceSource = sourceSource;
+        this.packages = packages;
         String src = System.getProperty("revoc.dev");
         if(src != null) {
             File srcFile = new File(src);
@@ -68,6 +70,10 @@ public class WebHandler extends AbstractHandler {
                 }
             }else if (request.getRequestURI() != null && request.getRequestURI().startsWith("/sources/")) {
                 String className = request.getRequestURI().substring("/sources/".length());
+                if(!isPackageMatch(className)) {
+                    response.sendError(HttpServletResponse.SC_NOT_FOUND);
+                    return;
+                }
                 ClassLoader loader =  Registry.getClassLoader(Integer.parseInt(request.getParameter("classLoader")));
                 String[] source = sourceSource.getSource(className, loader);
                 if(source == null) {
@@ -113,6 +119,15 @@ public class WebHandler extends AbstractHandler {
             baseRequest.setHandled(true);
         }
 
+    }
+
+    private boolean isPackageMatch(String className) {
+        for (String p : packages) {
+            if(className.startsWith(p)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private InputStream getResourceStream(String resourcePath) {

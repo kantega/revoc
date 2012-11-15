@@ -76,9 +76,9 @@ table td {
     position: fixed;
     right: 20px;
     top: 35px;
-    width: 400px;
     height: 100%;
     display:none;
+    text-align: right;
 }
 
 #pixelsheading {
@@ -93,11 +93,11 @@ table td {
 }
 
 #smallCanvas {
-    position: fixed;
-    right: 440px;
+    float:left;
     border: 3px solid gray;
     opacity: 0.80;
     cursor: pointer;
+    margin-right:20px;
 }
 
 #showclasses {
@@ -105,8 +105,7 @@ table td {
 }
 #canvasscroll {
     float:right;
-    width: 400px;
-    max-width: 100%;
+    max-width: 400px;
     max-height: 90%;
     overflow: hidden;
 }
