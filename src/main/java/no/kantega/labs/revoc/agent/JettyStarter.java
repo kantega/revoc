@@ -10,34 +10,15 @@ import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.handler.HandlerList;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 
-import java.util.Properties;
-
-import static no.kantega.labs.revoc.agent.Log.err;
-import static no.kantega.labs.revoc.agent.Log.log;
-
 /**
  *
  */
 public class JettyStarter {
 
 
-    public void start(Properties props) throws Exception {
-        String port = props.getProperty("port");
-        if (port != null) {
-            log("Using HTTP port " + port);
+    public void start(int port, String[] packages) throws Exception {
 
-        } else {
-            port = "7070";
-        }
-        int p = 0;
-        try {
-            p = Integer.parseInt(port);
-        } catch (NumberFormatException e) {
-            err("Port is not a number: " + port);
-            System.exit(-1);
-        }
-
-        Server server = new Server(p);
+        Server server = new Server(port);
 
         HandlerList collection = new HandlerList();
 
@@ -49,7 +30,7 @@ public class JettyStarter {
         collection.addHandler(new WebHandler(new CompondSourceSource(
                 new DirectorySourceSource(),
                 new MavenProjectSourceSource(),
-                new MavenSourceArtifactSourceSource())));
+                new MavenSourceArtifactSourceSource()), packages));
 
 
         server.setHandler(collection);

@@ -59,7 +59,7 @@ public class RevocAgent {
 
         String[] packages = getPackagesToInstrument(props);
 
-        startJettyServer(props);
+        startJettyServer(props, packages);
 
         return packages;
     }
@@ -104,9 +104,26 @@ public class RevocAgent {
         return list == null ? null : list.split("\\|");
     }
 
-    private static void startJettyServer(Properties props) throws Exception {
-        new JettyStarter().start(props);
+    private static void startJettyServer(Properties props, String[] packages) throws Exception {
+        new JettyStarter().start(getPort(props.getProperty("port")), packages);
     }
+
+    private static int getPort(String port) {
+        if (port != null) {
+            log("Using HTTP port " + port);
+
+        } else {
+            port = "7070";
+        }
+        try {
+            return Integer.parseInt(port);
+        } catch (NumberFormatException e) {
+            err("Port is not a number: " + port);
+            System.exit(-1);
+            return -1;
+        }
+    }
+
 
     private static Properties readOptions(String options) {
         Properties props = new Properties();
