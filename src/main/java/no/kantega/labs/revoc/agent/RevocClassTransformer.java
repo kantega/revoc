@@ -98,7 +98,10 @@ public class RevocClassTransformer implements ClassFileTransformer {
 
     private void analyzeInnerClasses(List<String> innerClasses, ClassLoader classLoader, String className) {
         for(String name : innerClasses) {
-            if(!name.equals(className) && !Registry.isClassRegistered(name, classLoader)) {
+            if(!name.equals(className)
+                    && name.startsWith(className)
+                    && !Registry.isClassRegistered(name, classLoader)
+                    && shouldFilter(classLoader, name, packages)) {
                 try {
                     final byte[] bytes = IOUtils.toByteArray(classLoader.getResourceAsStream(name + ".class"));
                     instrumentClass(name, bytes, classLoader);
