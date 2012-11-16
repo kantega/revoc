@@ -532,7 +532,7 @@ window.addEventListener("load", function() {
         smallCanvasPaint(evt);
     }
 
-    function updateData(props) {
+    function updateDataAJAX(props) {
 
         var xhr = new XMLHttpRequest();
 
@@ -550,10 +550,10 @@ window.addEventListener("load", function() {
                     if (props.onData) {
                         props.onData(data);
                     }
-                    //setTimeout("updateData({hang: true})", 1000)
+                    setTimeout(fetchDataAJAX, 5000)
                 } else {
                     // Server might be down, retry in a bit
-                    //setTimeout("updateData({hang: false})", 2000)
+                    //setTimeout("updateDataAJAX({hang: false})", 2000)
                 }
 
             }
@@ -804,24 +804,26 @@ window.addEventListener("load", function() {
         $("#sort-" +sortNames[i]).addEventListener("click", doSort);
     }
 
-    setFullScreen("source");
-
-    if (!ws.join()) {
-        updateData({hang: false,
+    function fetchDataAJAX() {
+        updateDataAJAX({hang: false,
             onData: function(d) {
                 if (idx2cn[0]) {
                     getSourceReport({className: idx2cn[0], lineId: 0});
                 }
             }
         });
+    }
+    setFullScreen("source");
 
-
+    if (!ws.join()) {
+        fetchDataAJAX();
     }
 
 
     smallCanvas = $("#smallCanvas");
     canvas = $("#canvas");
     canvasScroll = $("#canvasscroll");
+    source = $("#source");
     source = $("#source");
     pixels = $("#pixels");
 
