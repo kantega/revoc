@@ -204,7 +204,6 @@ public class JsonHandler {
                     + frame.getClassId() +","
                     + frame.getMethodIndex() +","
                     + TimeUnit.NANOSECONDS.toMicros(data.getTime()) +","
-                    + TimeUnit.NANOSECONDS.toMicros(data.getWaittime()) +","
                     + data.getVisits() +",");
             printFrameList(frame.getChildren(), pw);
             pw.print("]");

@@ -59,27 +59,27 @@ public abstract class Registry {
 
     private static final ThreadMap threadMap = new ThreadMap();
 
+    private static final ThreadLocal<FrameMap> threadLocalMap = new ThreadLocal<FrameMap>() {
+        @Override
+        protected FrameMap initialValue() {
+            FrameMap frameMap = new FrameMap();
+            threadMap.put(Thread.currentThread().getId(), frameMap);
+            return frameMap;
+        }
+    };
+
     private static String[][] methodNames;
     private static String[][] methodDescs;
 
     public static Collection<Frame> getFrames() {
-        Collection<FrameMap> frameMaps;
-        frameMaps = new HashSet<FrameMap>(threadMap.values());
 
 
         Frame top = new Frame(-1);
 
-        for (FrameMap map : frameMaps) {
-            Collection<Frame> frames;
-            synchronized (map) {
-                frames = new HashSet<Frame>(map.values());
-            }
-
-
-            for (Frame frame : frames) {
+        for (FrameMap map : threadMap.values()) {
+            for (Frame frame : map.values()) {
                 frame.mergeIntoParent(top);
             }
-
         }
 
         return top.getChildren();
@@ -591,39 +591,32 @@ public abstract class Registry {
 
     public static FrameMap registerMethodEnter(long methodId) {
 
-        FrameMap frameMap = getFrameMapForThread();
+        FrameMap frameMap = threadLocalMap.get();
 
         Frame myFrame = frameMap.getFrameForMethod(methodId);
 
         frameMap.setTopFrame(myFrame);
 
-        myFrame.setStartTime(System.nanoTime());
-
         return frameMap;
     }
 
     private static FrameMap getFrameMapForThread() {
-        long threadId = Thread.currentThread().getId();
-        FrameMap frameMap = threadMap.get(threadId);
-
-        if (frameMap == null) {
-            FrameMap prev = threadMap.putIfAbsent(threadId, frameMap = new FrameMap());
-            if(prev != null) {
-                return prev;
-            } else {
-                return frameMap;
-            }
-        } else {
-            return frameMap;
-        }
+        return threadLocalMap.get();
     }
 
 
-    public static void registerMethodExit(FrameMap frameMap, long exitTime, long waittime) {
+    public static void registerMethodExit(FrameMap frameMap, long exitTime, long startTime) {
         Frame topFrame = frameMap.getTopFrame();
         Frame parentFrame = topFrame.getParentFrame();
         frameMap.setTopFrame(parentFrame);
-        topFrame.visit(exitTime - topFrame.getStartTime(), waittime);
+        topFrame.visit(exitTime - startTime);
+    }
+
+    public static void registerMethodExit(FrameMap frameMap) {
+        Frame topFrame = frameMap.getTopFrame();
+        Frame parentFrame = topFrame.getParentFrame();
+        frameMap.setTopFrame(parentFrame);
+        topFrame.visit();
     }
 
     private static class Save implements Serializable {
@@ -680,21 +673,17 @@ public abstract class Registry {
         System.out.println(className + "." + methodName
                 + " Total time: " + (TimeUnit.NANOSECONDS.toMillis(data.getTime()))
                 + ", visits: " + data.getVisits()
-                + ", self time: " + TimeUnit.NANOSECONDS.toMillis(selfTime)
-                + ", wait time: " + TimeUnit.NANOSECONDS.toMillis(data.getWaittime()));
+                + ", self time: " + TimeUnit.NANOSECONDS.toMillis(selfTime));
         for (Frame child : frame.getChildren()) {
             dumpFrame(child, ++level);
         }
     }
 
-    public static class Frame {
+    public static class Frame extends ConcurrentHashMap<Long, Frame> {
         private final long methodId;
         private final Frame parentFrame;
-
-        private Map<Long, Frame> children = new ConcurrentHashMap<Long, Frame>();
         private long time;
         private int visits;
-        private volatile long startTime;
 
         private Frame(long methodId, Frame parentFrame) {
             this.methodId = methodId;
@@ -706,12 +695,12 @@ public abstract class Registry {
         }
 
         public void addChild(Frame frame) {
-            children.put(frame.getMethodId(), frame);
+            put(frame.getMethodId(), frame);
         }
 
 
         public Frame getChild(long methodId) {
-            return children.get(methodId);
+            return get(methodId);
         }
 
         public Frame getParentFrame() {
@@ -731,24 +720,27 @@ public abstract class Registry {
         }
 
         public Collection<Frame> getChildren() {
-            return new ArrayList<Frame>(children.values());
+            return new ArrayList<Frame>(values());
         }
 
-        public synchronized void visit(long time, long waittime) {
+        public synchronized void visit() {
+            this.visits++;
+        }
+
+        public synchronized void visit(long time) {
             this.time += time;
             this.visits++;
-            this.startTime = -1;
         }
 
-        public synchronized void visits(long visits, long time, long waittime) {
+        public synchronized void visits(long visits, long time) {
             this.time += time;
             this.visits += visits;
         }
 
-        public synchronized FrameData getData() {
-            return new FrameData(time, 0, visits, startTime);
-        }
 
+        public synchronized FrameData getData() {
+            return new FrameData(time, visits);
+        }
 
         public void mergeIntoParent(Frame parent) {
 
@@ -759,40 +751,24 @@ public abstract class Registry {
             FrameData data = getData();
             long time = data.getTime();
             int visits = data.getVisits();
-            // If method is currently running
-            if (data.getStartTime() != -1) {
-                time += (System.nanoTime() - data.getStartTime());
-                visits++;
-            }
 
-            myFrame.visits(visits, time, data.getWaittime());
+            myFrame.visits(visits, time);
 
             for (Frame child : getChildren()) {
                 child.mergeIntoParent(myFrame);
             }
         }
 
-        public synchronized void setStartTime(long startTime) {
-            this.startTime = startTime;
-        }
-
-        public synchronized long getStartTime() {
-            return startTime;
-        }
     }
 
     public static class FrameData {
 
         private final long time;
-        private final long waittime;
         private final int visits;
-        private final long startTime;
 
-        public FrameData(long time, long waittime, int visits, long startTime) {
+        public FrameData(long time, int visits) {
             this.time = time;
-            this.waittime = waittime;
             this.visits = visits;
-            this.startTime = startTime;
         }
 
         public long getTime() {
@@ -802,14 +778,6 @@ public abstract class Registry {
         public int getVisits() {
             return visits;
         }
-
-        public long getWaittime() {
-            return waittime;
-        }
-
-        public long getStartTime() {
-            return startTime;
-        }
     }
 
     static class ThreadMap extends ConcurrentHashMap<Long, FrameMap> {
@@ -817,6 +785,7 @@ public abstract class Registry {
     }
 
     public static class FrameMap extends ConcurrentHashMap<Long, Frame> {
+
         private Frame topFrame;
 
         public Frame getTopFrame() {
@@ -832,19 +801,31 @@ public abstract class Registry {
 
             Frame myFrame;
             if (parentFrame != null) {
-                myFrame = parentFrame.getChild(methodId);
+                myFrame = parentFrame.get(methodId);
                 if (myFrame == null) {
                     myFrame = new Frame(methodId, parentFrame);
-                    parentFrame.addChild(myFrame);
+                    Frame put = parentFrame.putIfAbsent(methodId, myFrame);
+                    if(put != null) {
+                        return put;
+                    }
+                    return myFrame;
+                } else {
+                    return myFrame;
                 }
             } else {
                 myFrame = get(methodId);
                 if (myFrame == null) {
                     myFrame = new Frame(methodId);
-                    put(methodId, myFrame);
+                    Frame put = putIfAbsent(methodId, myFrame);
+                    if(put != null) {
+                        return put;
+                    } else {
+                        return myFrame;
+                    }
+                } else {
+                    return myFrame;
                 }
             }
-            return myFrame;
         }
     }
 }

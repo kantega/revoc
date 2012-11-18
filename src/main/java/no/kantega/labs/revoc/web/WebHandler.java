@@ -106,6 +106,10 @@ public class WebHandler extends AbstractHandler {
                 response.setContentType("text/css");
                 IOUtils.copy(getResourceStream("revoc.css"), response.getOutputStream());
                 return;
+            }else if ("/profiler.css".equals(request.getRequestURI())) {
+                response.setContentType("text/css");
+                IOUtils.copy(getResourceStream("profiler.css"), response.getOutputStream());
+                return;
             }else if ("/revoc.js".equals(request.getRequestURI())) {
                 response.setContentType("text/javascript");
                 IOUtils.copy(getResourceStream("revoc.js"), response.getOutputStream());

@@ -111,7 +111,7 @@
             row.setAttribute("parentFrame", parentFrame);
 
 
-            var childFrames = frame[5];
+            var childFrames = frame[4];
             childFrames.sort(framesByTime);
 
             var childSum =0;
@@ -120,7 +120,7 @@
             }
 
             tbl.appendChild(row);
-            row.innerHTML = "<td class=prftime>" +formatMicroTime(frame[2]) + "</td><td class=prftime>" +formatMicroTime(frame[2]-childSum) + "</td><td class=prfvisits>" +frame[4] +"</td>";
+            row.innerHTML = "<td class=prftime>" +formatMicroTime(frame[2]) + "</td><td class=prftime>" +formatMicroTime(frame[2]-childSum) + "</td><td class=prfvisits>" +frame[3] +"</td>";
 
 
             var node = document.createElement("td");

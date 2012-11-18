@@ -73,11 +73,13 @@ public class LineTrackingPerformance {
             System.out.println("L44: " + coverageData.getLinesVisited(0)[43]);
             System.out.println("T44: " + coverageData.getLinesVisitTimes(0)[43]);
 
-            System.out.println("B35_A: " + coverageData.getBranchPointsForLine(0, 34)[0].getAfter());
-            System.out.println("B35_B: " + coverageData.getBranchPointsForLine(0, 34)[0].getBefore());
+            if(false)  {
+                System.out.println("B35_A: " + coverageData.getBranchPointsForLine(0, 34)[0].getAfter());
+                System.out.println("B35_B: " + coverageData.getBranchPointsForLine(0, 34)[0].getBefore());
 
-            System.out.println("B43_A: " + coverageData.getBranchPointsForLine(0, 42)[0].getAfter());
-            System.out.println("B43_B: " + coverageData.getBranchPointsForLine(0, 42)[0].getBefore());
+                System.out.println("B43_A: " + coverageData.getBranchPointsForLine(0, 42)[0].getAfter());
+                System.out.println("B43_B: " + coverageData.getBranchPointsForLine(0, 42)[0].getBefore());
+            }
 
             Registry.dumpFrames();
         }

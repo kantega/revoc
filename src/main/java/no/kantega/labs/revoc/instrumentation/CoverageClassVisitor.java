@@ -47,7 +47,8 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
     private boolean trackLines = true;
     private boolean trackTime = true;
     private boolean trackBranches = false;
-    private boolean profile = false;
+    private boolean profile = true;
+    private boolean profileTime = true;
     private int access;
 
     private int maxLocalVariableReportLoad = 10000;
@@ -248,8 +249,9 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
         private int beforeBranchPointsLocalVariable;
         private int afterBranchPointsLocalVariable;
         private int frameMapLocalVariable;
-        private int waitTimeLocalVariable;
-        private int totalWaitTimeLocalVariable;
+        //private int waitTimeLocalVariable;
+        //private int totalWaitTimeLocalVariable;
+        private int startTimeLocalVariable;
         private boolean profile;
 
         protected SecondPassInstrumentation(int classId, Map<Integer, Integer> classLineNumbers, Map<Integer, Integer> methodLineNumbers, Map<Integer, Integer> branchPoints, int reportLoad, MethodVisitor methodVisitor, int access, String name, String desc) {
@@ -308,7 +310,6 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
                 mv.visitMethodInsn(INVOKESTATIC, "no/kantega/labs/revoc/registry/Registry", "registerMethodEnter", "(J)Lno/kantega/labs/revoc/registry/Registry$FrameMap;");
                 mv.visitVarInsn(ASTORE, frameMapLocalVariable = newLocal(Type.getType(Registry.FrameMap.class)));
                 initalizeProfilingLocalVariables();
-                                
             }
             before = new Label();
             handler = new Label();
@@ -316,14 +317,21 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
         }
 
         private void initalizeProfilingLocalVariables() {
-            mv.visitInsn(LCONST_0);
-            mv.visitVarInsn(LSTORE, totalWaitTimeLocalVariable = newLocal(Type.getType("J")));
-            mv.visitInsn(LCONST_0);
-            mv.visitVarInsn(LSTORE, waitTimeLocalVariable = newLocal(Type.getType("J")));
+            if(profileTime) {
+                nanoTime();
+                mv.visitVarInsn(LSTORE, startTimeLocalVariable = newLocal(Type.getType("J")));
+            }
+            //mv.visitInsn(LCONST_0);
+            //mv.visitVarInsn(LSTORE, totalWaitTimeLocalVariable = newLocal(Type.getType("J")));
+            //mv.visitInsn(LCONST_0);
+            //mv.visitVarInsn(LSTORE, waitTimeLocalVariable = newLocal(Type.getType("J")));
         }
 
         private void nanoTime() {
             mv.visitMethodInsn(INVOKESTATIC, "java/lang/System", "nanoTime", "()J");
+            //mv.visitFieldInsn(GETSTATIC, "no/kantega/labs/revoc/registry/Registry", "time", "J");
+            //mv.visitInsn(Opcodes.LCONST_0);
+
         }
 
         private void initializeBranchPointArrayLocalVariable() {
@@ -419,12 +427,14 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
 
         @Override
         public void visitMethodInsn(int opcode, String owner, String name, String desc) {
+            /*
             if(profile && isWaitMethod(opcode, owner, name, desc)) {
                 nanoTime();
                 mv.visitVarInsn(LSTORE, waitTimeLocalVariable);
 
-            }
+            } */
             super.visitMethodInsn(opcode, owner, name, desc);
+            /*
             if(profile && isWaitMethod(opcode, owner, name, desc)) {
                 nanoTime();
                 mv.visitVarInsn(LLOAD, waitTimeLocalVariable);
@@ -434,6 +444,7 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
                 mv.visitVarInsn(LSTORE, totalWaitTimeLocalVariable);
 
             }
+            */
             if(trackTime) {
                 updateTime();
             }
@@ -542,9 +553,14 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
 
             if(profile) {
                 mv.visitVarInsn(ALOAD, frameMapLocalVariable);
-                nanoTime();
-                mv.visitVarInsn(LLOAD, totalWaitTimeLocalVariable);
-                mv.visitMethodInsn(INVOKESTATIC, "no/kantega/labs/revoc/registry/Registry", "registerMethodExit", "(Lno/kantega/labs/revoc/registry/Registry$FrameMap;JJ)V");
+                if(profileTime) {
+                    nanoTime();
+                    mv.visitVarInsn(LLOAD, startTimeLocalVariable);
+                    //mv.visitVarInsn(LLOAD, totalWaitTimeLocalVariable);
+                    mv.visitMethodInsn(INVOKESTATIC, "no/kantega/labs/revoc/registry/Registry", "registerMethodExit", "(Lno/kantega/labs/revoc/registry/Registry$FrameMap;JJ)V");
+                } else {
+                    mv.visitMethodInsn(INVOKESTATIC, "no/kantega/labs/revoc/registry/Registry", "registerMethodExit", "(Lno/kantega/labs/revoc/registry/Registry$FrameMap;)V");
+                }
             }
             
             // Get the int[] for this class
