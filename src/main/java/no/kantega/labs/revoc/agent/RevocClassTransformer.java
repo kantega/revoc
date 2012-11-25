@@ -86,7 +86,7 @@ public class RevocClassTransformer implements ClassFileTransformer {
             Registry.registerClass(className, classLoader, visitor.getSource());
             Registry.registerLines(classId, lines);
             Registry.registerBranchPoints(classId, visitor.getBranchPoints());
-            Registry.registerMethods(classId, visitor.getMethodNames(), visitor.getMethodDescs());
+            Registry.registerMethods(classId, visitor.getMethodNames(), visitor.getMethodDescs(), visitor.getMethodLineNumbers());
             returnBytes = classWriter.toByteArray();
         } else {
             System.out.println("Ignoring non-debug class " + className);

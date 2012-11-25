@@ -54,7 +54,7 @@ public class LineTrackingPerformance {
             Registry.registerClass(clazz.getName().replace('.', '/'), clazz.getClassLoader(), visitor.getSource());
             Registry.registerLines(0, visitor.getLineIndexes());
             Registry.registerBranchPoints(0, visitor.getBranchPoints());
-            Registry.registerMethods(0, visitor.getMethodNames(), visitor.getMethodDescs());
+            Registry.registerMethods(0, visitor.getMethodNames(), visitor.getMethodDescs(), visitor.getMethodLineNumbers());
 
 
             System.out.println("Untouched main class");

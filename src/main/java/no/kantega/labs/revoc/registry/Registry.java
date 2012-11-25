@@ -44,6 +44,8 @@ public abstract class Registry {
     private static int[] classLoaders;
     public static int[][] lines;
     public static AtomicLongArray[] lineVisits;
+    public static AtomicLongArray[] methodVisits;
+    public static int[][] methodLines;
     public static AtomicLongArray[] lineTimes;
     public static AtomicIntegerArray classTouches;
     private static BranchPoint[][] branchPoints;
@@ -280,18 +282,40 @@ public abstract class Registry {
     }
 
     public static void registerLineVisited(int classId, int lineId) {
-        lineVisits[classId].incrementAndGet(lineId);
+       lineVisits[classId].incrementAndGet(lineId);
     }
 
+
+    public static void registerMethodVisited(AtomicLongArray methods, int methodId) {
+        methods.incrementAndGet(methodId);
+    }
+
+
     public static void registerLineTimeVisited(AtomicLongArray lineVisits, AtomicLongArray lineTimes, int lineId, int numvisits, long time) {
-        lineVisits.addAndGet(lineId, numvisits);
         if(numvisits != 0) {
+            lineVisits.addAndGet(lineId, numvisits);
+            lineTimes.lazySet(lineId, time);
+        }
+
+    }
+
+    public static void registerLineTimeVisitedMV(AtomicLongArray lineVisits, AtomicLongArray lineTimes, int lineId, int numvisits, long time) {
+        if(numvisits >= 0) {
+            if(numvisits > 0) {
+                lineVisits.addAndGet(lineId, numvisits);
+            }
             lineTimes.set(lineId, time);
         }
     }
 
     public static void registerLineVisited(AtomicLongArray lineVisits, int lineId, int numvisits) {
         lineVisits.addAndGet(lineId, numvisits);
+    }
+
+    public static void registerLineVisitedMV(AtomicLongArray lineVisits, int lineId, int numvisits) {
+        if(numvisits != 0) {
+            lineVisits.addAndGet(lineId, numvisits);
+        }
     }
 
 
@@ -380,6 +404,20 @@ public abstract class Registry {
                 System.arraycopy(old, 0, sourceFiles, 0, old.length);
                 Registry.sourceFiles = sourceFiles;
             }
+
+            {
+                AtomicLongArray[] old = methodVisits;
+                AtomicLongArray[] methodVisits = new AtomicLongArray[old.length * 2];
+                System.arraycopy(old, 0, methodVisits, 0, old.length);
+                Registry.methodVisits = methodVisits;
+            }
+
+            {
+                int[][] old = methodLines;
+                int[][] methodLines = new int[old.length * 2][];
+                System.arraycopy(old, 0, methodLines, 0, old.length);
+                Registry.methodLines = methodLines;
+            }
             {
                 AtomicLongArray[] old = lineVisits;
                 AtomicLongArray[] lineVisits = new AtomicLongArray[old.length * 2];
@@ -452,6 +490,13 @@ public abstract class Registry {
                         int lineNumber = lines[l];
                         lineTimes[c][lineNumber - 1] = registryTimes.get(l);
                     }
+                    int[] line2method = methodLines[c];
+                    for(int i = 0; i < line2method.length; i++) {
+                        int methodIndex = line2method[i];
+                        long methodTimes = methodVisits[c].get(methodIndex);
+                        int lineNumber = lines[i];
+                        lineVisits[c][lineNumber-1] += methodTimes;
+                    }
                 }
 
             }
@@ -512,13 +557,22 @@ public abstract class Registry {
         }
     }
 
-    public static void registerMethods(int classId, List<String> methodNames, List<String> methodDescs) {
+    public static void registerMethods(int classId, List<String> methodNames, List<String> methodDescs, Map<Integer, Integer> methodLineNumbers) {
+        methodVisits[classId]  = new AtomicLongArray(methodNames.size());
         Registry.methodNames[classId] = new String[methodNames.size()];
         Registry.methodDescs[classId] = new String[methodNames.size()];
         for (int i = 0; i < methodNames.size(); i++) {
             Registry.methodNames[classId][i] = methodNames.get(i);
             Registry.methodDescs[classId][i] = methodDescs.get(i);
         }
+
+
+
+        methodLines[classId] = new int[methodLineNumbers.size()];
+        for (Integer integer : methodLineNumbers.keySet()) {
+            methodLines[classId][integer] = methodLineNumbers.get(integer);
+        }
+
     }
 
     public static void registerBranchPoints(int classId, List<BranchPoint> branchPoints) {
@@ -564,6 +618,8 @@ public abstract class Registry {
             sourceFiles = new String[INITIAL_NUM_CLASSES];
             lines = new int[INITIAL_NUM_CLASSES][];
             lineVisits = new AtomicLongArray[INITIAL_NUM_CLASSES];
+            methodLines = new int[INITIAL_NUM_CLASSES][];
+            methodVisits = new AtomicLongArray[INITIAL_NUM_CLASSES];
             lineTimes = new AtomicLongArray[INITIAL_NUM_CLASSES];
             branchPoints = new BranchPoint[INITIAL_NUM_CLASSES][];
 
@@ -574,10 +630,20 @@ public abstract class Registry {
     public static void resetVisits() {
         synchronized (monitor) {
             for (int i = 0; i < classCount; i++) {
-                AtomicLongArray lvs = lineVisits[i];
-                for (int l = 0; l < lvs.length(); l++) {
-                    if (lvs.get(l) >= 0) {
-                        lvs.set(l,  0);
+                {
+                    AtomicLongArray lvs = lineVisits[i];
+                    for (int l = 0; l < lvs.length(); l++) {
+                        if (lvs.get(l) >= 0) {
+                            lvs.set(l,  0);
+                        }
+                    }
+                }
+                {
+                    AtomicLongArray lvs = methodVisits[i];
+                    for (int l = 0; l < lvs.length(); l++) {
+                        if (lvs.get(l) >= 0) {
+                            lvs.set(l,  0);
+                        }
                     }
                 }
                 BranchPoint[] bps = branchPoints[i];

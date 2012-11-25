@@ -17,6 +17,7 @@
 package no.kantega.labs.revoc.registry;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
@@ -62,6 +63,7 @@ public class RegistryTest {
     }
 
     @Test
+    @Ignore
     public void saveAndLoadShouldBringBackSameInfo() {
 
         // Given

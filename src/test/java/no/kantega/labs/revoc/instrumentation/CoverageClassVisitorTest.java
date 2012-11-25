@@ -190,6 +190,7 @@ public class CoverageClassVisitorTest {
             Registry.registerClass(HelloWorld.class.getName(), HelloWorld.class.getClassLoader(), visitor.getSource());
             Registry.registerLines(classId, visitor.getLineIndexes());
             Registry.registerBranchPoints(classId, visitor.getBranchPoints());
+            Registry.registerMethods(classId, visitor.getMethodNames(), visitor.getMethodDescs(), visitor.getMethodLineNumbers());
         }
 
         protected void configureClassVisitor(CoverageClassVisitor visitor) {

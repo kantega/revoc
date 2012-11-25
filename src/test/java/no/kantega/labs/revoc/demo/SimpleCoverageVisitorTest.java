@@ -56,6 +56,7 @@ public class SimpleCoverageVisitorTest {
         cr.accept(visitor, ClassReader.EXPAND_FRAMES);
         Registry.registerClass(clazz.getClass().getName(), clazz.getClassLoader(), visitor.getSource());
         Registry.registerLines(classId, visitor.getLineIndexes());
+        Registry.registerMethods(classId, visitor.getMethodNames(), visitor.getMethodDescs(), visitor.getMethodLineNumbers());
 
         ClassUtils.invokeMainMethodUsingReflection("no.kantega.labs.helloworld.HelloWorld", cw.toByteArray(), 3);
 
