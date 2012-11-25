@@ -19,12 +19,10 @@ package no.kantega.labs.revoc.source;
 import org.apache.commons.io.IOUtils;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.JarURLConnection;
-import java.net.URL;
-import java.net.URLConnection;
-import java.net.URLDecoder;
+import java.net.*;
 import java.util.*;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
@@ -37,6 +35,26 @@ public class MavenSourceArtifactSourceSource implements SourceSource {
 
     private final Map<String, MavenSourceInfo> mavenInfoMap = new HashMap<String, MavenSourceInfo>();
     private final Map<String, JarFile> sourceFileMap = new HashMap<String, JarFile>();
+    private File mavenDownloads;
+    private String mavenRepo;
+
+    public MavenSourceArtifactSourceSource() {
+        String mavenDownloadsEnv = System.getenv("REVOC_MAVEN_DOWNLOAD");
+        String mavenRepo = System.getenv("REVOC_MAVEN_REPO");
+
+        if(mavenDownloadsEnv != null && mavenRepo != null) {
+            File mavenDir = new File(mavenDownloadsEnv);
+            mavenDir.mkdirs();
+            this.mavenDownloads = mavenDir;
+            if(!mavenRepo.endsWith("/")) {
+                mavenRepo +="/";
+            }
+            this.mavenRepo = mavenRepo;
+
+        }
+
+
+    }
 
     public String[] getSource(String className, ClassLoader classLoader) {
 
@@ -48,19 +66,32 @@ public class MavenSourceArtifactSourceSource implements SourceSource {
             return null;
         }
 
-        MavenSourceInfo info;
 
-        JarFile sourceFile;
+
+
 
         try {
+
+
+            MavenSourceInfo info;
+
             synchronized (mavenInfoMap) {
+
                 if (!mavenInfoMap.containsKey(filePath)) {
-                    mavenInfoMap.put(filePath, info = parseInfo(filePath, resource));
-                    sourceFileMap.put(filePath, sourceFile = getSourceFile(filePath, info));
+                    mavenInfoMap.put(filePath, parseInfo(filePath, resource));
                 }
                 info = mavenInfoMap.get(filePath);
+            }
+
+
+            JarFile sourceFile;
+            synchronized (sourceFileMap) {
+                if(!sourceFileMap.containsKey(filePath)) {
+                    sourceFileMap.put(filePath, getSourceFile(filePath, info));
+                }
                 sourceFile = sourceFileMap.get(filePath);
             }
+
 
             if(sourceFile == null) {
                 return null;
@@ -94,9 +125,44 @@ public class MavenSourceArtifactSourceSource implements SourceSource {
             }
         }
         if (!sourceJar.exists()) {
+            if(mavenDownloads != null && info != null) {
+                File downLoad = downloadMavenSource(info);
+                if(downLoad != null) {
+                    sourceJar = downLoad;
+                }
+
+            }
+            if(!sourceJar.exists()) {
+                return null;
+            }
+        }
+
+
+        return new JarFile(sourceJar);
+    }
+
+    private File downloadMavenSource(MavenSourceInfo info) {
+        File downloadFile = new File(mavenDownloads, getSourceFileMavenPath(info));
+        if(downloadFile.exists()) {
+            return downloadFile;
+        }
+        downloadFile.getParentFile().mkdirs();
+        File tempFile = new File(downloadFile.getParentFile(), "_tmp" + downloadFile.getName());
+
+        try {
+            URL remoteSourceURL = new URL(this.mavenRepo + getSourceFileMavenPath(info));
+
+            InputStream stream = remoteSourceURL.openStream();
+            FileOutputStream output = new FileOutputStream(tempFile);
+            IOUtils.copy(stream, output);
+            output.close();
+            tempFile.renameTo(downloadFile);
+            return downloadFile;
+        } catch (MalformedURLException e) {
+            return null;
+        } catch (IOException e) {
             return null;
         }
-        return new JarFile(sourceJar);
     }
 
     private String getSourceFileMavenPath(MavenSourceInfo info) {
