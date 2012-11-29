@@ -152,6 +152,7 @@ table td {
 
 #overview {
     padding: 1em;
+    display: none;
 }
 
 #overview table {
@@ -219,4 +220,15 @@ tr.sortable th.selected:hover {
 
 .fullscreen {
     display: none;
+}
+
+#classLoaderSelector {
+    display: none;
+}
+
+div.filters {
+    margin: 0.5em;
+}
+#filter {
+    width: 30em;
 }

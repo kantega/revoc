@@ -36,6 +36,13 @@
 <div id="source" class="fullscreen"></div>
 <div id="overview" class="fullscreen">
 
+    <div class="filters">
+        Filter: <input id="filter">
+
+        <select id="classLoaderSelector">
+            <option value="-1">Show all classloaders</option>
+        </select>
+    </div>
     <table>
         <tr class="sortable">
             <th id="sort-name">Name</th>
@@ -47,7 +54,7 @@
             <th id="sort-max">Max</th>
         </tr>
         <tr class="total">
-            <td class="label">
+            <td class="label" id="totallabel">
                 Total
             </td>
             <td class="total-run">

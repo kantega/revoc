@@ -25,6 +25,9 @@ public class SimpleClass {
         for(int i = 0; i < 10; i++) {
             System.out.println("Hello world");
         }
+        if(System.currentTimeMillis() <0) {
+            System.out.println("This should never happen");
+        }
         return;
     }
 

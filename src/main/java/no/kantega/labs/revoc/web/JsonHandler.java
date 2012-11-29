@@ -24,6 +24,7 @@ import no.kantega.labs.revoc.report.CoverageFolder;
 import java.io.PrintWriter;
 import java.util.BitSet;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -45,7 +46,8 @@ public class JsonHandler {
         */
         coverageData = new CoverageFolder().fold(coverageData);
 
-        writer.println("{");
+        writer.println("{loaders: " + printClassLoaderList() +", ");
+        writer.println("classes: {");
         {
 
             final String[] classNames = coverageData.getClassNames();
@@ -56,7 +58,7 @@ public class JsonHandler {
                     writer.print(",");
                 }
                 String className = classNames[i];
-                writer.print("\"" +className +"\":[");
+                writer.print("\"" +classLoaders[i] + "+" +className +"\":[");
                 // Class loader
                 writer.print(classLoaders[i]);
 
@@ -144,6 +146,26 @@ public class JsonHandler {
 
         writer.println();
         writer.println("}");
+        writer.println("}");
+    }
+
+    private String printClassLoaderList() {
+        Iterator<Registry.NamedClassLoader> classLoaders = Registry.getClassLoaders().iterator();
+
+        StringBuilder sb = new StringBuilder();
+
+        sb.append("[");
+        while (classLoaders.hasNext()) {
+            Registry.NamedClassLoader loader = classLoaders.next();
+            sb.append(System.identityHashCode(loader)).append(",").append("\"").append(loader.getName()).append("\"");
+            if(classLoaders.hasNext()) {
+                sb.append(",");
+            }
+
+        }
+        sb.append("]");
+
+        return sb.toString();
     }
 
     public void writeCallTreeJson(Collection<Registry.Frame> frames, PrintWriter pw) {

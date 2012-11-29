@@ -17,11 +17,13 @@
 package no.kantega.labs.revoc.source;
 
 import org.apache.commons.io.IOUtils;
+import org.w3c.dom.*;
+import org.xml.sax.SAXException;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import java.io.*;
 import java.net.*;
 import java.util.*;
 import java.util.jar.JarEntry;
@@ -39,7 +41,7 @@ public class MavenSourceArtifactSourceSource implements SourceSource {
     private String mavenRepo;
 
     public MavenSourceArtifactSourceSource() {
-        String mavenDownloadsEnv = System.getenv("REVOC_MAVEN_DOWNLOAD");
+        String mavenDownloadsEnv = getConfig("REVOC_MAVEN_DOWNLOAD");
         String mavenRepo = System.getenv("REVOC_MAVEN_REPO");
 
         if(mavenDownloadsEnv != null && mavenRepo != null) {
@@ -53,6 +55,16 @@ public class MavenSourceArtifactSourceSource implements SourceSource {
 
         }
 
+
+    }
+
+    private String getConfig(String property) {
+        String env = System.getenv(property);
+        if(env == null) {
+            return System.getProperty(property);
+        } else {
+            return env;
+        }
 
     }
 
@@ -143,6 +155,9 @@ public class MavenSourceArtifactSourceSource implements SourceSource {
 
     private File downloadMavenSource(MavenSourceInfo info) {
         File downloadFile = new File(mavenDownloads, getSourceFileMavenPath(info));
+        if(info.getVersion().contains("-SNAPSHOT")) {
+            downloadFile.delete();
+        }
         if(downloadFile.exists()) {
             return downloadFile;
         }
@@ -150,7 +165,7 @@ public class MavenSourceArtifactSourceSource implements SourceSource {
         File tempFile = new File(downloadFile.getParentFile(), "_tmp" + downloadFile.getName());
 
         try {
-            URL remoteSourceURL = new URL(this.mavenRepo + getSourceFileMavenPath(info));
+            URL remoteSourceURL = new URL(this.mavenRepo + getSourceFileDownloadMavenPath(info));
 
             InputStream stream = remoteSourceURL.openStream();
             FileOutputStream output = new FileOutputStream(tempFile);
@@ -167,11 +182,79 @@ public class MavenSourceArtifactSourceSource implements SourceSource {
 
     private String getSourceFileMavenPath(MavenSourceInfo info) {
         StringBuilder sb = new StringBuilder();
+        appendArtifactDirectory(info, sb);
+        sb.append(getSourceArtifactName(info));
+        return sb.toString();
+    }
+
+    private String getSourceFileDownloadMavenPath(MavenSourceInfo info) {
+
+        StringBuilder sb = new StringBuilder();
+        appendArtifactDirectory(info, sb);
+        if(info.getVersion().contains("SNAPSHOT")) {
+            sb.append(resolveSnapshotFileName(info, sb.toString()));
+        } else {
+            sb.append(getSourceArtifactName(info));
+        }
+        return sb.toString();
+    }
+
+    private void appendArtifactDirectory(MavenSourceInfo info, StringBuilder sb) {
         sb.append(info.getGroupId().replace('.', '/')).append("/");
         sb.append(info.getArtifactId()).append("/");
         sb.append(info.getVersion()).append("/");
-        sb.append(getSourceArtifactName(info));
-        return sb.toString();
+    }
+
+    private String resolveSnapshotFileName(MavenSourceInfo info, String artifactUrl) {
+
+              try {
+                  URL url = new URL(this.mavenRepo + artifactUrl + "maven-metadata.xml");
+
+                  final DocumentBuilder builder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+
+                  HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
+                  urlConnection.addRequestProperty("Cache-Control", "max-age=0");
+                  urlConnection.addRequestProperty("User-Agent", "Apache-Maven/3.0");
+                  InputStream inputStream = urlConnection.getInputStream();
+                  final Document doc = builder.parse(inputStream);
+                  inputStream.close();
+
+
+                  Element versioning = (Element) doc.getDocumentElement().getElementsByTagName("versioning").item(0);
+                  Element snapshotVersions = (Element) versioning.getElementsByTagName("snapshotVersions").item(0);
+                  NodeList snapshotVersion = snapshotVersions.getElementsByTagName("snapshotVersion");
+                  for(int i = 0; i < snapshotVersion.getLength(); i++) {
+                      final Element versioningElement = (Element) snapshotVersion.item(i);
+
+                      String value= getText((Element) versioningElement.getElementsByTagName("value").item(0));
+
+                      return info.getArtifactId() + "-" + value + "-sources.jar";
+
+
+                  }
+
+                  return null;
+
+              } catch (ParserConfigurationException e) {
+                  throw new RuntimeException(e);
+              } catch (SAXException e) {
+                  throw new RuntimeException(e);
+              } catch (IOException e) {
+                  throw new RuntimeException(e);
+              }
+    }
+
+    private String getText(Element versionNode) {
+        StringBuilder text = new StringBuilder();
+
+        for (int t = 0; t < versionNode.getChildNodes().getLength(); t++) {
+            final Node node = versionNode.getChildNodes().item(t);
+            if (node instanceof Text) {
+                text.append(((Text) node).getData());
+            }
+
+        }
+        return text.toString();
     }
 
     private String getSourceArtifactName(MavenSourceInfo info) {
@@ -280,5 +363,18 @@ public class MavenSourceArtifactSourceSource implements SourceSource {
         public JarFile getSourceFile() {
             return sourceFile;
         }
+    }
+
+
+    public static void main(String[] args) throws IOException {
+        URL url = new URL("http://nexus.kantega.lan/content/repositories/snapshots/no/kantega/davexchange/1.6.16-SNAPSHOT/maven-metadata.xml");
+        HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
+        urlConnection.addRequestProperty("Cache-Control", "max-age=0");
+        urlConnection.addRequestProperty("User-Agent", "Apache-Maven/3.0");
+        InputStream inputStream = urlConnection.getInputStream();
+
+        String content = IOUtils.toString(inputStream);
+
+        System.out.println(content);
     }
 }

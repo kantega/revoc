@@ -72,6 +72,7 @@ public abstract class Registry {
 
     private static String[][] methodNames;
     private static String[][] methodDescs;
+    private static List<NamedClassLoader> classLoaderList = new ArrayList<NamedClassLoader>();
 
     public static Collection<Frame> getFrames() {
 
@@ -138,6 +139,41 @@ public abstract class Registry {
         }
     }
 
+    public static class NamedClassLoader {
+        private String name;
+        private ClassLoader classLoader;
+
+        NamedClassLoader(ClassLoader classLoader) {
+            this.classLoader = classLoader;
+            this.name = classLoader.toString();
+        }
+
+        public ClassLoader getClassLoader() {
+            return classLoader;
+        }
+
+        public String getName() {
+            return name;
+        }
+    }
+
+    public static void addClassLoader(ClassLoader classLoader) {
+        synchronized (monitor) {
+            classLoaderList.add(new NamedClassLoader(classLoader));
+            Collections.sort(classLoaderList, new Comparator<NamedClassLoader>() {
+                @Override
+                public int compare(NamedClassLoader classLoader, NamedClassLoader classLoader1) {
+                    return classLoader.getName().toLowerCase().compareTo(classLoader1.getName().toLowerCase());
+                }
+            });
+        }
+    }
+    public static List<NamedClassLoader> getClassLoaders() {
+
+        synchronized (monitor) {
+            return new ArrayList<NamedClassLoader>(classLoaderList);
+        }
+    }
     private static void startTimerThread() {
         new Thread("Revoc time ticker") {
             {
@@ -300,10 +336,10 @@ public abstract class Registry {
     }
 
     public static void registerLineTimeVisitedMV(AtomicLongArray lineVisits, AtomicLongArray lineTimes, int lineId, int numvisits, long time) {
-        if(numvisits >= 0) {
-            if(numvisits > 0) {
-                lineVisits.addAndGet(lineId, numvisits);
-            }
+        if(numvisits != 0) {
+            lineVisits.addAndGet(lineId, numvisits);
+        }
+        if(numvisits != -1) {
             lineTimes.set(lineId, time);
         }
     }
@@ -356,6 +392,7 @@ public abstract class Registry {
             classLoaders[classId] = System.identityHashCode(classLoader);
             classCount++;
             if(!classNamesMap.containsKey(classLoaders[classId])) {
+                addClassLoader(classLoader);
                 classNamesMap.putIfAbsent(classLoaders[classId], new ClassNameMap(classLoader));
             }
             classNamesMap.get(classLoaders[classId]).put(classNames[classId], classId);

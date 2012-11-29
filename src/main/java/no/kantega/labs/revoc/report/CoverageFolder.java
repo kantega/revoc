@@ -37,15 +37,17 @@ public class CoverageFolder {
             String sourcePath = className.substring(0, className.lastIndexOf("/")+1) + sourceName;
 
 
+            String sourceKey = coverageData.getClassLoaders()[i] +"-" + sourcePath;
 
-            if(!sources.containsKey(sourcePath)) {
-                sources.put(sourcePath, new ArrayList<Integer>());
+
+            if(!sources.containsKey(sourceKey)) {
+                sources.put(sourceKey, new ArrayList<Integer>());
             }
 
             if(className.equals(sourcePath.substring(0, sourcePath.length() - ".java".length()))) {
-                topLevels.put(sourcePath, i);
+                topLevels.put(sourceKey, i);
             }
-            List<Integer> classes = sources.get(sourcePath);
+            List<Integer> classes = sources.get(sourceKey);
             classes.add(i);
         }
 
@@ -58,13 +60,13 @@ public class CoverageFolder {
         final BranchPoint[][] branchPoints = new BranchPoint[topLevels.size()][];
 
         int c = 0;
-        for(String sourcePath : sources.keySet()) {
-            if(topLevels.get(sourcePath) == null) {
+        for(String sourceKey : sources.keySet()) {
+            if(topLevels.get(sourceKey) == null) {
                 continue;
             }
             int maxLines = 0;
             int numBranchPoints = 0;
-            for(Integer i : sources.get(sourcePath)) {
+            for(Integer i : sources.get(sourceKey)) {
                 maxLines = Math.max(maxLines, coverageData.getLinesVisited(i).length);
                 numBranchPoints += coverageData.getBranchPoints(i).length;
             }
@@ -72,8 +74,8 @@ public class CoverageFolder {
             branchPoints[c] = new BranchPoint[numBranchPoints];
             int b = 0;
 
-            classNames[c] = coverageData.getClassNames()[topLevels.get(sourcePath)];
-            classLoaders[c] = coverageData.getClassLoaders()[topLevels.get(sourcePath)];
+            classNames[c] = coverageData.getClassNames()[topLevels.get(sourceKey)];
+            classLoaders[c] = coverageData.getClassLoaders()[topLevels.get(sourceKey)];
 
             linesVisited[c] = new long[maxLines];
             Arrays.fill(linesVisited[c], -1);
@@ -81,7 +83,7 @@ public class CoverageFolder {
             lineTimes[c] = new long[maxLines];
             Arrays.fill(lineTimes[c], -1);
 
-            for(Integer i : sources.get(sourcePath)) {
+            for(Integer i : sources.get(sourceKey)) {
                 for(int l = 0; l < coverageData.getLinesVisited(i).length; l++) {
                     long visits = coverageData.getLinesVisited(i)[l];
                     if(visits >=0) {

@@ -24,7 +24,7 @@ window.addEventListener("load", function() {
     $ = function(sel) {
         return document.querySelector(sel);
     };
-    var data;
+    var data, classLoaders;
 
     var zoom = 2;
 
@@ -46,6 +46,8 @@ window.addEventListener("load", function() {
     var redrawTimeout;
 
     var listeners = new Array();
+
+    var classLoaderSelector;
 
     var ws = {
         _ws: null,
@@ -86,8 +88,8 @@ window.addEventListener("load", function() {
         _onmessage: function(m) {
             var newData = eval("(" + m.data + ")");
             var size = 0, key;
-            for (key in newData) {
-                if (newData.hasOwnProperty(key)) size++;
+            for (key in newData.classes) {
+                if (newData.classes.hasOwnProperty(key)) size++;
             }
             console.log("New data classes: " + size + " / " + m.data.length);
 
@@ -113,7 +115,6 @@ window.addEventListener("load", function() {
             $("#showclasses").style.display="inline";
             $("#loading").style.display="none";
             $("#pixelsheading").style.display="block";
-
         }
         if(currentClick) {
             var newDataHasClass = newData[currentClick.className] != undefined;
@@ -124,11 +125,19 @@ window.addEventListener("load", function() {
         }
 
         if(data) {
-            for(var cn in newData) {
-                data[cn] = newData[cn];
+            for(var cn in newData.classes) {
+                data[cn] = newData.classes[cn];
             }
+            if(classLoaders.length != newData.loaders.length) {
+                classLoaders = newData.loaders;
+                updateClassLoaderSelector();
+            }
+
         } else {
-            data = newData;
+            data = newData.classes;
+            classLoaders = newData.loaders;
+            updateClassLoaderSelector();
+
         }
         idx2cn = new Array();
         cn2idx = new Array();
@@ -304,7 +313,9 @@ window.addEventListener("load", function() {
 
         drawLine(clsLine.className, true);
 
-        $("#title").innerHTML = clsLine.className.replace(/\//g, ".") + ": " + (clsLine.lineId + 1);
+        var className = clsLine.className.substr(clsLine.className.indexOf("+")+1);
+
+        $("#title").innerHTML = className.replace(/\//g, ".") + ": " + (clsLine.lineId + 1);
         $("#coverage").innerHTML = getCoverage(clsLine.className) +"%";
 
         prevLine = clsLine
@@ -314,13 +325,21 @@ window.addEventListener("load", function() {
         if (!currentClick || clsLine.className != currentClick.className) {
             var xhr = new XMLHttpRequest();
 
-            xhr.open("GET", "sources/" + clsLine.className + "?classLoader=" + data[clsLine.className][0], true);
+            var className = clsLine.className.substr(clsLine.className.indexOf("+")+1);
+            var classLoader = clsLine.className.substr(0, clsLine.className.indexOf("+"));
+            xhr.open("GET", "sources/" + className + "?classLoader=" + classLoader, true);
 
             xhr.onreadystatechange = function() {
                 if (xhr.readyState == 4) {
-                    currentSource = xhr.responseText;
-                    currentClick = clsLine;
-                    showSource(xhr.responseText, clsLine, scroll);
+                    if(xhr.status == 200) {
+                        currentSource = xhr.responseText;
+                        currentClick = clsLine;
+                        showSource(xhr.responseText, clsLine, scroll);
+                    } else if(xhr.status = 404) {
+                        alert("No source code found for class " + className.substr(className.lastIndexOf("/")+1));
+                    } else {
+                        alert("Server responded with " + xhr.status + ": " + xhr.statusText);
+                    }
                 }
             };
             xhr.send(null)
@@ -377,7 +396,11 @@ window.addEventListener("load", function() {
 
         console.log("showSource")
         source.innerHTML = "";
-        $("#sourcetitle").innerHTML = clsLine.className.replace(/\//g,".");
+
+        var className = clsLine.className.substr(clsLine.className.indexOf("+")+1);
+        var classLoader = clsLine.className.substr(0, clsLine.className.indexOf("+"));
+
+        $("#sourcetitle").innerHTML = className.replace(/\//g,".");
         $("#sourcecoverage").innerHTML = getCoverage(clsLine.className) +"%";
 
         var tbl = document.createElement("table");
@@ -580,8 +603,35 @@ window.addEventListener("load", function() {
     var overviewSort = null;
 
 
+
+    function updateClassLoaderSelector() {
+
+        classLoaderSelector.style.display = classLoaders.length > 2 ? "inline" : "none";
+
+        var value = classLoaderSelector.value;
+        var options = classLoaderSelector.getElementsByTagName("option");
+        for(var i = 0,l=options.length;i<l;i++) {
+            if(options[i].getAttribute("value") != "-1") {
+                options[i].parentNode.removeChild(options[i]);
+            }
+        }
+
+        for(var i = 0,l=classLoaders.length;i<l;i+=2) {
+            var option = document.createElement("option");
+            option.setAttribute("value", classLoaders[i]);
+            option.appendChild(document.createTextNode(classLoaders[i+1]))
+            classLoaderSelector.appendChild(option);
+        }
+        classLoaderSelector.value = value;
+
+
+    }
+
     function showOverview(evt) {
 
+        var selectedClassLoader = classLoaderSelector.value;
+
+        var filter = $("#filter").value;
 
         if(evt)
             evt.preventDefault();
@@ -595,6 +645,13 @@ window.addEventListener("load", function() {
         var totalSumRun = 0;
 
         for(var c in data) {
+
+            if(selectedClassLoader != -1 && selectedClassLoader != data[c][0]) {
+                continue;
+            }
+            if(filter && filter.length > 0 && c.indexOf(filter) == -1) {
+                continue;
+            }
             var numLines = 0;
             var numLinesRun = 0;
             var sumLinesRun = 0;
@@ -618,6 +675,7 @@ window.addEventListener("load", function() {
 
             }
             totalNumLinesUnRun += (numLines-numLinesRun);
+            var clsName = c.substring(c.indexOf("+")+1);
             array.push([c, numLinesRun, numLines-numLinesRun, numLines, Math.round(numLinesRun*100 / numLines), sumLinesRun, maxLinesRun]);
         }
         if(overviewSort)
@@ -660,11 +718,22 @@ window.addEventListener("load", function() {
             }
         }
 
+
+        var rows = document.querySelectorAll("#overview table tr.class");
+        for(var i = array.length, l=rows.length; i < l; i++) {
+            rows[i].style.display = "none";
+        }
+
         for(var i = 0; i < array.length; i++) {
             var a = array[i];
-            $("#orow-" + i).setAttribute("rclass", a[0]);
-            $("#orow-" + i +"-packagename").innerHTML = a[0].substr(0, a[0].lastIndexOf("/")).replace(/\//g, ".");
-            $("#orow-" + i +"-classname").innerHTML = a[0].substr(a[0].lastIndexOf("/")+1);
+            var row = $("#orow-" + i);
+            row.style.display = "table-row";
+            row.setAttribute("rclass", a[0]);
+            var className = a[0].substr(a[0].indexOf("+")+1);
+            var classLoader = a[0].substr(0, a[0].indexOf("+"));
+
+            $("#orow-" + i +"-packagename").innerHTML = className.substr(0, className.lastIndexOf("/")).replace(/\//g, ".");
+            $("#orow-" + i +"-classname").innerHTML = className.substr(className.lastIndexOf("/")+1);
             $("#orow-" + i +"-run").innerHTML = a[1];
             $("#orow-" + i +"-unrun").innerHTML = a[2];
             $("#orow-" + i +"-lines").innerHTML = a[3];
@@ -673,6 +742,7 @@ window.addEventListener("load", function() {
             $("#orow-" + i +"-max").innerHTML = a[6];
         }
 
+        $("#totallabel").innerHTML = "Total " + array.length;
         var totals = {
             run : totalNumLinesRun,
             unrun : totalNumLinesUnRun,
@@ -761,6 +831,14 @@ window.addEventListener("load", function() {
 
 
     });
+
+    listeners.push(function(changed, first) {
+        if(first) {
+            showOverview()
+            setFullScreen("overview");
+        }
+    });
+
     listeners.push(function(changed, first) {
         if (changed) {
             getSourceReport(currentClick, false);
@@ -776,14 +854,6 @@ window.addEventListener("load", function() {
         }
     });
 
-    listeners.push(function(changed, first) {
-        if(isFullScreen("source")) {
-            if (first) {
-                console.log("Getting source for: " +idx2cn[0] + ", line " + 0);
-                getSourceReport({className: idx2cn[0], lineId: 0});
-            }
-        }
-    });
 
     listeners.push(function(changed, first) {
         if(isFullScreen("overview")) {
@@ -813,7 +883,6 @@ window.addEventListener("load", function() {
             }
         });
     }
-    setFullScreen("source");
 
     if (!ws.join()) {
         fetchDataAJAX();
@@ -827,12 +896,16 @@ window.addEventListener("load", function() {
     source = $("#source");
     pixels = $("#pixels");
 
+    classLoaderSelector = $("#classLoaderSelector")
+
     ctx = canvas.getContext("2d");
 
 
     smallCtx = smallCanvas.getContext("2d");
 
+    classLoaderSelector.addEventListener("change", showOverview);
 
+    $("#filter").addEventListener("keyup", showOverview);
 
 
     canvas.addEventListener("mousemove", canvasmoved);

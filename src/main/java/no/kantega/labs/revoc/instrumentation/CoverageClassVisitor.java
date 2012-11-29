@@ -470,7 +470,7 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
             }
             */
             if(trackTime) {
-                updateTime();
+                //updateTime();
             }
         }
 
@@ -481,7 +481,7 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
         @Override
         public void visitInsn(int i) {
             if (trackTime && i >= IRETURN && i <= RETURN) {
-                updateTime();
+                //updateTime();
             }
             super.visitInsn(i);
         }
@@ -516,7 +516,7 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
             mv.visitLabel(handler);
 
 
-            generateLineVisitRegistration();
+            generateLineVisitRegistration(true);
 
             mv.visitInsn(ATHROW);
             mv.visitMaxs(maxStack, maxLocals + lineNumberLocalVariables.size() + beforeBranchPointLocalVariables.size() + afterBranchPointLocalVariables.size());
@@ -525,7 +525,7 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
         @Override
         protected void onMethodExit(int opcode) {
             if (opcode != ATHROW) {
-                generateLineVisitRegistration();
+                generateLineVisitRegistration(false);
             }
         }
 
@@ -573,7 +573,7 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
             }
         }
 
-        private void generateLineVisitRegistration() {
+        private void generateLineVisitRegistration(boolean isCatchBlock) {
 
             if(profile) {
                 mv.visitVarInsn(ALOAD, frameMapLocalVariable);

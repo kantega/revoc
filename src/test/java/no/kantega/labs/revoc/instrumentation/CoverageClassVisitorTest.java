@@ -58,11 +58,13 @@ public class CoverageClassVisitorTest {
         assertFalse(visitor.isInterface());
         assertEquals(1, visitor.getInnerClasses().size());
         assertEquals(vmClassName + "$InnerClass", visitor.getInnerClasses().get(0));
-        assertEquals(5, visitor.getExistingLines().cardinality());
+        assertEquals(7, visitor.getExistingLines().cardinality());
         assertTrue("Expected HelloWorld to have code on line 22", visitor.getExistingLines().get(22));
         assertTrue("Expected HelloWorld to have code on line 25", visitor.getExistingLines().get(25));
         assertTrue("Expected HelloWorld to have code on line 26", visitor.getExistingLines().get(26));
         assertTrue("Expected HelloWorld to have code on line 28", visitor.getExistingLines().get(28));
+        assertTrue("Expected HelloWorld to have code on line 29", visitor.getExistingLines().get(29));
+        assertTrue("Expected HelloWorld to have code on line 31", visitor.getExistingLines().get(31));
 
         CoverageData data = Registry.getCoverageData();
         assertEquals(-1, data.getLinesVisited(classId)[20]);
@@ -70,6 +72,8 @@ public class CoverageClassVisitorTest {
         assertEquals(11, data.getLinesVisited(classId)[24]);
         assertEquals(10, data.getLinesVisited(classId)[25]);
         assertEquals(1, data.getLinesVisited(classId)[27]);
+        assertEquals(0, data.getLinesVisited(classId)[28]);
+        assertEquals(1, data.getLinesVisited(classId)[30]);
     }
 
     @Test
