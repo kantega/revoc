@@ -16,6 +16,7 @@
 
 package no.kantega.labs.revoc.source;
 
+import no.kantega.labs.revoc.config.Config;
 import org.apache.commons.io.IOUtils;
 import org.w3c.dom.*;
 import org.xml.sax.SAXException;
@@ -41,8 +42,8 @@ public class MavenSourceArtifactSourceSource implements SourceSource {
     private String mavenRepo;
 
     public MavenSourceArtifactSourceSource() {
-        String mavenDownloadsEnv = getConfig("REVOC_MAVEN_DOWNLOAD");
-        String mavenRepo = System.getenv("REVOC_MAVEN_REPO");
+        String mavenDownloadsEnv = Config.getProperty("REVOC_MAVEN_DOWNLOAD");
+        String mavenRepo = Config.getProperty("REVOC_MAVEN_REPO");
 
         if(mavenDownloadsEnv != null && mavenRepo != null) {
             File mavenDir = new File(mavenDownloadsEnv);
@@ -58,15 +59,6 @@ public class MavenSourceArtifactSourceSource implements SourceSource {
 
     }
 
-    private String getConfig(String property) {
-        String env = System.getenv(property);
-        if(env == null) {
-            return System.getProperty(property);
-        } else {
-            return env;
-        }
-
-    }
 
     public String[] getSource(String className, ClassLoader classLoader) {
 

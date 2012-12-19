@@ -16,6 +16,7 @@
 
 package no.kantega.labs.revoc.instrumentation;
 
+import no.kantega.labs.revoc.analysis.OneLineAnalyze;
 import no.kantega.labs.revoc.registry.BranchPoint;
 import no.kantega.labs.revoc.registry.Registry;
 import org.objectweb.asm.*;
@@ -38,8 +39,8 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
     /** Maps actual debug line number to the index of its first usage **/
     private final Map<Integer, Integer> classLineNumbers = new HashMap<Integer, Integer>();
 
-    /** Maps actual debug line number to method index **/
-    private final Map<Integer, Integer> methodLineNumbers = new TreeMap<Integer, Integer>();
+
+    private final Map<Integer, List<Integer>> methodLineNumbers = new TreeMap<Integer, List<Integer>>();
 
     private List<String> innerClasses = new ArrayList<String>();
 
@@ -49,7 +50,6 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
 
     private boolean trackLines = true;
     private boolean trackTime = true;
-    private boolean registerMethodVisits = true;
     private boolean trackBranches = false;
     private boolean profile = false;
     private boolean profileTime = false;
@@ -60,6 +60,16 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
     private List<String> methodDescs = new ArrayList<String>();
     private boolean staticInjected = false;
 
+    private static Set<String> supressedMethodNames = new HashSet<String>();
+    static {
+
+        //supressedMethodNames.add("loop");
+        //supressedMethodNames.add("innerLoop");
+        //supressedMethodNames.add("fastMethod");
+        //supressedMethodNames.add("fasterMethod");
+
+
+    }
     public CoverageClassVisitor(ClassVisitor classVisitor, int classId) {
         super(ASM4, classVisitor);
         this.classId = classId;
@@ -105,8 +115,8 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
         
         FieldVisitor lineCounter = super.visitField(ACC_PRIVATE + ACC_STATIC + ACC_SYNTHETIC + ACC_FINAL, "revoc_counters", "Ljava/util/concurrent/atomic/AtomicLongArray;", null, null);
         lineCounter.visitEnd();
-        FieldVisitor methodCounter = super.visitField(ACC_PRIVATE + ACC_STATIC + ACC_SYNTHETIC + ACC_FINAL, "revoc_methodcounters", "Ljava/util/concurrent/atomic/AtomicLongArray;", null, null);
-        methodCounter.visitEnd();
+        FieldVisitor timeCounter = super.visitField(ACC_PRIVATE + ACC_STATIC + ACC_SYNTHETIC + ACC_FINAL, "revoc_times", "Ljava/util/concurrent/atomic/AtomicLongArray;", null, null);
+        timeCounter.visitEnd();
         if(!staticInjected) {
             MethodVisitor mv = super.visitMethod(ACC_STATIC, "<clinit>", "()V", null, null);
             mv.visitCode();
@@ -126,16 +136,15 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
             mv.visitFieldInsn(PUTSTATIC, className, "revoc_counters", "Ljava/util/concurrent/atomic/AtomicLongArray;");
         }
         {
-            mv.visitFieldInsn(GETSTATIC, "no/kantega/labs/revoc/registry/Registry", "methodVisits", "[Ljava/util/concurrent/atomic/AtomicLongArray;");
+            mv.visitFieldInsn(GETSTATIC, "no/kantega/labs/revoc/registry/Registry", "lineTimes", "[Ljava/util/concurrent/atomic/AtomicLongArray;");
             mv.visitLdcInsn(classId);
             mv.visitInsn(AALOAD);
-            mv.visitFieldInsn(PUTSTATIC, className, "revoc_methodcounters", "Ljava/util/concurrent/atomic/AtomicLongArray;");
+            mv.visitFieldInsn(PUTSTATIC, className, "revoc_times", "Ljava/util/concurrent/atomic/AtomicLongArray;");
         }
-
     }
 
-    protected MethodVisitor createSecondPassAnalyzer(int classId, Map<Integer, Integer> classLineNumbers, Map<Integer, Integer> methodLineNumbers, Map<Integer, Integer> branchPoints, int reportLoad, MethodVisitor mv, int access, String name, String desc) {
-        return new SecondPassInstrumentation(classId, classLineNumbers, methodLineNumbers, branchPoints, reportLoad, mv, access, name, desc);
+    protected MethodVisitor createSecondPassAnalyzer(int classId, Map<Integer, Integer> classLineNumbers, Map<Integer, Integer> methodLineNumbers, Map<Integer, Integer> branchPoints, int reportLoad, Map<Integer, Boolean> oneTimeLines, MethodVisitor mv, int access, String name, String desc) {
+        return new SecondPassInstrumentation(classId, classLineNumbers, methodLineNumbers, branchPoints, reportLoad, oneTimeLines, mv, access, name, desc);
     }
 
     public int getClassId() {
@@ -150,10 +159,9 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
         this.trackBranches = trackBranches;
     }
 
-    public Map<Integer, Integer> getMethodLineNumbers() {
+    public Map<Integer, List<Integer>> getMethodLineNumbers() {
         return methodLineNumbers;
     }
-
 
     /**
      * Runs a first pass of the code such that instrumentation can be done on the basis of class analysis.
@@ -170,21 +178,29 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
         @Override
         public void visitEnd() {
 
+            if(supressedMethodNames.contains(name) || (access & Opcodes.ACC_ABSTRACT) != 0 ) {
+                accept(new MethodVisitor(ASM4, mv) {
+                });
+            } else {
 
-            final Map<Integer, Integer> methodLineNumbers = analyzeLinePoints(instructions);
+                final Map<Integer, Integer> methodLineNumbers = analyzeLinePoints(instructions);
 
-            final Map<Integer, Integer> branchPoints = analyzeBranchPoints(instructions);
+                final Map<Integer, Integer> branchPoints = analyzeBranchPoints(instructions);
 
-            int numExitPoints = countExitPoints(instructions);
-            int reportLoad = (methodLineNumbers.size() + branchPoints.size()) * numExitPoints;
+                final Map<Integer, Boolean> oneTimeLines = new OneLineAnalyze().analyze(instructions);
 
-            accept(createSecondPassAnalyzer(classId, classLineNumbers, methodLineNumbers, branchPoints, reportLoad, mv, access, name, desc));
-            methodNames.add(name);
-            methodDescs.add(desc);
+                int numExitPoints = countExitPoints(instructions);
+                int reportLoad = (methodLineNumbers.size() + branchPoints.size()) * numExitPoints;
+
+                accept(createSecondPassAnalyzer(classId, classLineNumbers, methodLineNumbers, branchPoints, reportLoad, oneTimeLines, mv, access, name, desc));
+                methodNames.add(name);
+                methodDescs.add(desc);
+            }
 
 
 
         }
+
 
 
 
@@ -230,6 +246,7 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
         }
 
         private Map<Integer, Integer> analyzeLinePoints(InsnList instructions) {
+            CoverageClassVisitor.this.methodLineNumbers.put(methodNames.size(), new ArrayList<Integer>());
             final Map<Integer, Integer> methodLineNumbers = new TreeMap<Integer, Integer>();
 
             for (int i = 0; i < instructions.size(); i++) {
@@ -238,13 +255,19 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
                     LineNumberNode node = (LineNumberNode) ins;
                     int lineNumber = node.line;
                     existingLines.set(lineNumber);
+                    int idx = classLineNumbers.size();
                     if (!classLineNumbers.containsKey(lineNumber)) {
-                        int idx = classLineNumbers.size();
                         classLineNumbers.put(lineNumber, idx);
-                        CoverageClassVisitor.this.methodLineNumbers.put(idx, methodNames.size());
+                    } else {
+                        idx = classLineNumbers.get(lineNumber);
                     }
                     if (!methodLineNumbers.containsKey(lineNumber)) {
                         methodLineNumbers.put(lineNumber, methodLineNumbers.size());
+                    }
+
+                    List<Integer> lines = CoverageClassVisitor.this.methodLineNumbers.get(methodNames.size());
+                    if(!lines.contains(idx)) {
+                        lines.add(idx);
                     }
 
                 }
@@ -261,6 +284,7 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
         private final Map<Integer, Integer> classLineNumbers;
         private final Map<Integer, Integer> methodLineNumbers;
         private final Map<Integer, Integer> branchPoints;
+        private final Map<Integer, Boolean> oneTimeLines;
         private final int access;
         private final String name;
         private int methodJumpIndex = 0;
@@ -274,15 +298,18 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
         private int frameMapLocalVariable;
         //private int waitTimeLocalVariable;
         //private int totalWaitTimeLocalVariable;
+        private int linesVisitedLocalVariable;
         private int startTimeLocalVariable;
         private boolean profile;
+        private int threadBufferLocal;
 
-        protected SecondPassInstrumentation(int classId, Map<Integer, Integer> classLineNumbers, Map<Integer, Integer> methodLineNumbers, Map<Integer, Integer> branchPoints, int reportLoad, MethodVisitor methodVisitor, int access, String name, String desc) {
+        protected SecondPassInstrumentation(int classId, Map<Integer, Integer> classLineNumbers, Map<Integer, Integer> methodLineNumbers, Map<Integer, Integer> branchPoints, int reportLoad, Map<Integer, Boolean> oneTimeLines, MethodVisitor methodVisitor, int access, String name, String desc) {
             super(ASM4, methodVisitor, access, name, desc);
             this.classId = classId;
             this.classLineNumbers = classLineNumbers;
             this.methodLineNumbers = methodLineNumbers;
             this.branchPoints = branchPoints;
+            this.oneTimeLines = oneTimeLines;
             this.access = access;
             this.name = name;
             this.useLocalVariables = reportLoad <= maxLocalVariableReportLoad;
@@ -291,7 +318,6 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
 
         // Maps absolute line number to local variable index
         private Map<Integer, Integer> lineNumberLocalVariables = new TreeMap<Integer, Integer>();
-        private Map<Integer, Integer> lineTimeLocalVariables = new TreeMap<Integer, Integer>();
         private Map<Integer, Integer> beforeBranchPointLocalVariables = new TreeMap<Integer, Integer>();
         private Map<Integer, Integer> afterBranchPointLocalVariables = new TreeMap<Integer, Integer>();
         public Label before;
@@ -308,18 +334,23 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
                 visitFetchRevocCounter(mv);
             }
 
-            if(trackTime) {
-                timeLocal = newLocal(Type.LONG_TYPE);
-                updateTime();
-            }
+
+
             if(trackLines) {
                 if(useLocalVariables) {
                     initializeLineNumberLocalVariables();
+                    linesVisitedLocalVariable = newLocal(Type.LONG_TYPE);
+                    mv.visitInsn(LCONST_0);
+                    mv.visitVarInsn(LSTORE, linesVisitedLocalVariable);
                 } else {
                     initializeLineNumerArrayLocalVariable();
                 }
             }
 
+            if(trackTime && methodLineNumbers.size() > 1) {
+                timeLocal = newLocal(Type.LONG_TYPE);
+                updateTime();
+            }
             if(trackBranches) {
                 if(useLocalVariables) {
                     initializeBranchPointLocalVariables();
@@ -333,6 +364,16 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
                 mv.visitMethodInsn(INVOKESTATIC, "no/kantega/labs/revoc/registry/Registry", "registerMethodEnter", "(J)Lno/kantega/labs/revoc/registry/Registry$FrameMap;");
                 mv.visitVarInsn(ASTORE, frameMapLocalVariable = newLocal(Type.getType(Registry.FrameMap.class)));
                 initalizeProfilingLocalVariables();
+            }
+            if(methodLineNumbers.size() == 1) {
+                mv.visitLdcInsn((long) classId << 32 | (long) methodNames.size());
+                mv.visitMethodInsn(INVOKESTATIC, "no/kantega/labs/revoc/registry/Registry", "registerOneLineVisited", "(J)V");
+            }else if(methodLineNumbers.size() > 1 ) {
+                mv.visitLdcInsn((long)classId << 32 | (long) methodNames.size());
+                mv.visitMethodInsn(INVOKESTATIC, "no/kantega/labs/revoc/registry/Registry", "getThreadLocalBufferInc", "(J)Lno/kantega/labs/revoc/registry/Registry$ThreadLocalBuffer;");
+                threadBufferLocal = newLocal(Type.getType(Registry.ThreadLocalBuffer.class));
+                mv.visitVarInsn(ASTORE, threadBufferLocal);
+
             }
             before = new Label();
             handler = new Label();
@@ -398,18 +439,15 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
         }
 
         private void initializeLineNumberLocalVariables() {
-            for (int lineNumber : methodLineNumbers.keySet()) {
-                {
-                    visitIntConstantInstruction(registerMethodVisits ? -1 : 0);
-                    int local = newLocal(Type.INT_TYPE);
-                    lineNumberLocalVariables.put(lineNumber, local);
-                    mv.visitVarInsn(ISTORE, local);
-                }
-                if(trackTime) {
-                    mv.visitInsn(LCONST_0);
-                    int local = newLocal(Type.LONG_TYPE);
-                    lineTimeLocalVariables.put(lineNumber, local);
-                    mv.visitVarInsn(LSTORE, local);
+            if(methodLineNumbers.size() > 1) {
+
+                for (int lineNumber : methodLineNumbers.keySet()) {
+                    {
+                        visitIntConstantInstruction(-1);
+                        int local = newLocal(Type.INT_TYPE);
+                        lineNumberLocalVariables.put(lineNumber, local);
+                        mv.visitVarInsn(ISTORE, local);
+                    }
                 }
             }
         }
@@ -420,11 +458,22 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
             mv.visitLineNumber(lineNumber, label);
             if(trackLines) {
                 if(useLocalVariables) {
-                    mv.visitIincInsn(lineNumberLocalVariables.get(lineNumber), 1);
+                    if(methodLineNumbers.size() > 1) {
+                        mv.visitIincInsn(lineNumberLocalVariables.get(lineNumber), 1);
 
-                    if(trackTime) {
-                        mv.visitVarInsn(LLOAD, timeLocal);
-                        mv.visitVarInsn(LSTORE, lineTimeLocalVariables.get(lineNumber));
+                        if(trackTime) {
+
+                            int index = methodLineNumbers.get(lineNumber);
+                            mv.visitVarInsn(LLOAD, linesVisitedLocalVariable);
+                            mv.visitInsn(ICONST_1);
+                            visitIntConstantInstruction(index);
+                            mv.visitInsn(ISHL);
+                            mv.visitInsn(I2L);
+                            mv.visitInsn(LOR);
+                            mv.visitVarInsn(LSTORE, linesVisitedLocalVariable);
+
+
+                        }
                     }
                 } else {
                     {
@@ -512,19 +561,18 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
 
         @Override
         public void visitMaxs(int maxStack, int maxLocals) {
-            mv.visitTryCatchBlock(before, handler, handler, null);
-            mv.visitLabel(handler);
-
-
-            generateLineVisitRegistration(true);
-
-            mv.visitInsn(ATHROW);
+            if(methodLineNumbers.size() > 1) {
+                mv.visitTryCatchBlock(before, handler, handler, null);
+                mv.visitLabel(handler);
+                generateLineVisitRegistration(true);
+                mv.visitInsn(ATHROW);
+            }
             mv.visitMaxs(maxStack, maxLocals + lineNumberLocalVariables.size() + beforeBranchPointLocalVariables.size() + afterBranchPointLocalVariables.size());
         }
 
         @Override
         protected void onMethodExit(int opcode) {
-            if (opcode != ATHROW) {
+            if (opcode != ATHROW && methodLineNumbers.size() > 1) {
                 generateLineVisitRegistration(false);
             }
         }
@@ -594,49 +642,68 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
 
                 {
 
-                    mv.visitFieldInsn(GETSTATIC, className, "revoc_counters", "Ljava/util/concurrent/atomic/AtomicLongArray;");
 
                     if(trackTime) {
+                        /*
                         mv.visitFieldInsn(GETSTATIC, "no/kantega/labs/revoc/registry/Registry", "lineTimes", "[Ljava/util/concurrent/atomic/AtomicLongArray;");
                         visitIntConstantInstruction(classId);
                         mv.visitInsn(AALOAD);
+                        */
                     }
 
                 }
 
                 if(useLocalVariables) {
 
+                    if(methodLineNumbers.size() != 1) {
 
-                    if(registerMethodVisits) {
-                        mv.visitFieldInsn(GETSTATIC, className, "revoc_methodcounters", "Ljava/util/concurrent/atomic/AtomicLongArray;");
-                        visitIntConstantInstruction(methodNames.size());
-                        mv.visitMethodInsn(INVOKESTATIC, "no/kantega/labs/revoc/registry/Registry", "registerMethodVisited", "(Ljava/util/concurrent/atomic/AtomicLongArray;I)V");
-                    }
 
-                    for (int i = 0; i < lineNumberLocalVariables.size() - 1; i++) {
-                        if(trackTime) {
+                        if(numNonOneLiners(oneTimeLines) > 0) {
+                            mv.visitVarInsn(ALOAD, threadBufferLocal);
+                        }
+                        mv.visitVarInsn(ALOAD, threadBufferLocal);
+                        mv.visitLdcInsn(((long)classId << 32 | (long) methodNames.size()));
+                        mv.visitVarInsn(LLOAD, timeLocal);
+                        mv.visitVarInsn(LLOAD, linesVisitedLocalVariable);
+                        visitIntConstantInstruction(lineNumberLocalVariables.size());
+                        mv.visitMethodInsn(INVOKEVIRTUAL, "no/kantega/labs/revoc/registry/Registry$ThreadLocalBuffer", "visitMultiMethod", "(JJJI)[J");
+                        if(numNonOneLiners(oneTimeLines) == 0) {
+                            mv.visitInsn(POP);
+                        }
+
+                        for(int i = 0; i < numNonOneLiners(oneTimeLines)-1; i++) {
                             mv.visitInsn(DUP2);
-                        } else {
-                            mv.visitInsn(DUP);
                         }
-                    }
+                        int i = 0;
+                        for (Integer lineNumber : lineNumberLocalVariables.keySet()) {
+                            if(!oneTimeLines.get(methodLineNumbers.get(lineNumber))) {
+                                mv.visitVarInsn(ILOAD, lineNumberLocalVariables.get(lineNumber));
+                                visitIntConstantInstruction(i);
+                                mv.visitMethodInsn(INVOKEVIRTUAL, "no/kantega/labs/revoc/registry/Registry$ThreadLocalBuffer", "visitLine", "([JII)V");
+                            }
+                            i++;
+                        }
 
-                    for (Integer lineNumber : lineNumberLocalVariables.keySet()) {
-                        visitIntConstantInstruction(classLineNumbers.get(lineNumber));
-                        mv.visitVarInsn(ILOAD, lineNumberLocalVariables.get(lineNumber));
-                        String suffix = registerMethodVisits ? "MV" : "";
+
+                        mv.visitVarInsn(ALOAD, threadBufferLocal);
+                        mv.visitLdcInsn((long)classId << 32 | (long) methodNames.size());
                         if(trackTime) {
-                            mv.visitVarInsn(LLOAD, lineTimeLocalVariables.get(lineNumber));
-                            mv.visitMethodInsn(INVOKESTATIC, "no/kantega/labs/revoc/registry/Registry", "registerLineTimeVisited" +suffix, "(Ljava/util/concurrent/atomic/AtomicLongArray;Ljava/util/concurrent/atomic/AtomicLongArray;IIJ)V");
+                            mv.visitVarInsn(LLOAD, timeLocal);
                         } else {
-                            mv.visitMethodInsn(INVOKESTATIC, "no/kantega/labs/revoc/registry/Registry", "registerLineVisited" +suffix, "(Ljava/util/concurrent/atomic/AtomicLongArray;II)V");
+                            mv.visitInsn(LCONST_0);
                         }
-
-
+                        visitIntConstantInstruction(lineNumberLocalVariables.size());
+                        mv.visitMethodInsn(INVOKEVIRTUAL, "no/kantega/labs/revoc/registry/Registry$ThreadLocalBuffer", "popStack", "(JJI)V");
 
 
                     }
                 } else {
+
+
+                    mv.visitFieldInsn(GETSTATIC, className, "revoc_counters", "Ljava/util/concurrent/atomic/AtomicLongArray;");
+                    if(trackTime) {
+                        mv.visitFieldInsn(GETSTATIC, className, "revoc_times", "Ljava/util/concurrent/atomic/AtomicLongArray;");
+                    }
                     mv.visitVarInsn(ALOAD, lineVisitsLocalVariable);
                     if(trackTime) {
                         mv.visitVarInsn(ALOAD, timeVisitsLocalVariable);
@@ -648,6 +715,7 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
                     } else {
                         mv.visitMethodInsn(INVOKESTATIC, "no/kantega/labs/revoc/registry/Registry", "registerLineVisitedArray", "(Ljava/util/concurrent/atomic/AtomicLongArray;[II)V");
                     }
+
                 }
             }
 
@@ -670,9 +738,16 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
                     mv.visitMethodInsn(Opcodes.INVOKESTATIC, "no/kantega/labs/revoc/registry/Registry", "registerBranchPointVisitsArray", "(I[I[II)V");
                 }
             }
+        }
 
-            visitIntConstantInstruction(classId);
-            mv.visitMethodInsn(INVOKESTATIC, "no/kantega/labs/revoc/registry/Registry", "linesTouched", "(I)V");
+        private int numNonOneLiners(Map<Integer, Boolean> oneTimeLines) {
+            int c = 0;
+            for (Boolean aBoolean : oneTimeLines.values()) {
+                if(!aBoolean) {
+                    c++;
+                }
+            }
+            return c;
         }
 
     }

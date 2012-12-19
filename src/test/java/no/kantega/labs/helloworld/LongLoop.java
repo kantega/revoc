@@ -25,7 +25,7 @@ public class LongLoop {
         long before = System.currentTimeMillis();
         long l = 0;
         Thread[] threads = new Thread[100];
-        for (int i = 0; i < threads.length; i++) {
+        for(int t=0; t < 1; t++) {for (int i = 0; i < threads.length; i++) {
             try {
                 threads[i] = new Thread(new RunLoop(LongLoop.class.getMethod("loop")));
             } catch (NoSuchMethodException e) {
@@ -41,7 +41,7 @@ public class LongLoop {
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
-        }
+        }}
 
         System.out.println(System.currentTimeMillis() - before);
     }

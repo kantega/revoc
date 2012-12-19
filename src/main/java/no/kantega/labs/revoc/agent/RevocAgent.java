@@ -16,20 +16,21 @@
 
 package no.kantega.labs.revoc.agent;
 
+import no.kantega.labs.revoc.logging.LogFactory;
+import no.kantega.labs.revoc.logging.Logger;
+
 import java.lang.instrument.Instrumentation;
 import java.lang.instrument.UnmodifiableClassException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
-import static no.kantega.labs.revoc.agent.Log.err;
-import static no.kantega.labs.revoc.agent.Log.log;
-
 /**
  *
  */
 public class RevocAgent {
 
+    private static final Logger log = LogFactory.getLogger(RevocAgent.class);
     /**
      * Run when Revoc is added as a Java Agent as a startup command line option
      */
@@ -51,7 +52,7 @@ public class RevocAgent {
     }
 
     private static String[] init(String options) throws Exception {
-        log("Configuring coverage engine");
+        log.info("Configuring coverage engine");
 
         Properties props = readOptions(options);
 
@@ -73,7 +74,7 @@ public class RevocAgent {
             }
         }
 
-        log(String.format("Instrumenting %s classes", classesToInstrument.size()));
+        log.info(String.format("Instrumenting %s classes", classesToInstrument.size()));
 
         instrumentation.addTransformer(new RevocClassTransformer(packages), true);
 
@@ -92,11 +93,11 @@ public class RevocAgent {
     private static void validatePackagesConfigured(Properties props) {
         String packages = props.getProperty("packages");
         if (packages == null) {
-            err("Option 'packages' must be specified. Example command line:");
-            err("\tjava -javaagent:revoc.jar=packages=com.example.,port=7070 -jar my.jar:");
+            log.error("Option 'packages' must be specified. Example command line:");
+            log.error("\tjava -javaagent:revoc.jar=packages=com.example.,port=7070 -jar my.jar:");
             System.exit(-1);
         } else {
-            log("Using packages pattern(s) " + packages);
+            log.info("Using packages pattern(s) " + packages);
         }
     }
 
@@ -110,7 +111,7 @@ public class RevocAgent {
 
     private static int getPort(String port) {
         if (port != null) {
-            log("Using HTTP port " + port);
+            log.info("Using HTTP port " + port);
 
         } else {
             port = "7070";
@@ -118,7 +119,7 @@ public class RevocAgent {
         try {
             return Integer.parseInt(port);
         } catch (NumberFormatException e) {
-            err("Port is not a number: " + port);
+            log.error("Port is not a number: " + port);
             System.exit(-1);
             return -1;
         }

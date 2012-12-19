@@ -1,5 +1,6 @@
 package no.kantega.labs.revoc.source;
 
+import no.kantega.labs.revoc.config.Config;
 import org.apache.commons.io.IOUtils;
 
 import java.io.File;
@@ -24,10 +25,7 @@ public class DirectorySourceSource implements SourceSource {
     public DirectorySourceSource() {
 
 
-        String revSources = System.getenv("REVOC_SOURCES");
-        if(revSources == null) {
-            revSources = System.getProperty("revoc.sources");
-        }
+        String revSources = Config.getProperty("REVOC_SOURCES");
 
 
         if (revSources != null) {

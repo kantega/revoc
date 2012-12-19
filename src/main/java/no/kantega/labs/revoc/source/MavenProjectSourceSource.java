@@ -20,7 +20,6 @@ import org.apache.commons.io.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.List;
 
@@ -37,10 +36,10 @@ public class MavenProjectSourceSource implements SourceSource {
 
 
         try {
-            if(resource.toURI().getPath() == null) {
+            if(resource.getPath() == null) {
                 return null;
             }
-            File classFile = new File(resource.toURI().getPath());
+            File classFile = new File(resource.getPath());
 
             if (!classFile.exists()) {
                 return null;
@@ -69,8 +68,6 @@ public class MavenProjectSourceSource implements SourceSource {
             return null;
 
 
-        } catch (URISyntaxException e) {
-            throw new RuntimeException(e);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

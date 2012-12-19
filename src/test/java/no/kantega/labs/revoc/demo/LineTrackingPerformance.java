@@ -70,6 +70,11 @@ public class LineTrackingPerformance {
             final CoverageData coverageData = Registry.getCoverageData();
             System.out.println("L36: " + coverageData.getLinesVisited(0)[35]);
             System.out.println("T36: " + coverageData.getLinesVisitTimes(0)[35]);
+            System.out.println("T42: " + coverageData.getLinesVisitTimes(0)[41]);
+            System.out.println("L52: " + coverageData.getLinesVisited(0)[51]);
+            System.out.println("L64: " + coverageData.getLinesVisited(0)[63]);
+            System.out.println("L72: " + coverageData.getLinesVisited(0)[71]);
+            System.out.println("T72: " + coverageData.getLinesVisitTimes(0)[71]);
             System.out.println("L44: " + coverageData.getLinesVisited(0)[43]);
             System.out.println("T44: " + coverageData.getLinesVisitTimes(0)[43]);
 

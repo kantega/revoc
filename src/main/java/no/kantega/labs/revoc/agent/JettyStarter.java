@@ -1,5 +1,6 @@
 package no.kantega.labs.revoc.agent;
 
+import no.kantega.labs.revoc.logging.JettyRevocLogger;
 import no.kantega.labs.revoc.source.CompondSourceSource;
 import no.kantega.labs.revoc.source.DirectorySourceSource;
 import no.kantega.labs.revoc.source.MavenProjectSourceSource;
@@ -9,6 +10,7 @@ import no.kantega.labs.revoc.web.WebHandler;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.handler.HandlerList;
 import org.eclipse.jetty.servlet.ServletContextHandler;
+import org.eclipse.jetty.util.log.Log;
 
 /**
  *
@@ -18,6 +20,7 @@ public class JettyStarter {
 
     public void start(int port, String[] packages) throws Exception {
 
+        Log.setLog(new JettyRevocLogger());
         Server server = new Server(port);
 
         HandlerList collection = new HandlerList();
@@ -35,6 +38,8 @@ public class JettyStarter {
 
         server.setHandler(collection);
 
+        server.setStopAtShutdown(true);
         server.start();
+
     }
 }

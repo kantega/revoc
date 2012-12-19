@@ -17,6 +17,8 @@
 package no.kantega.labs.revoc.agent;
 
 import no.kantega.labs.revoc.instrumentation.CoverageClassVisitor;
+import no.kantega.labs.revoc.logging.LogFactory;
+import no.kantega.labs.revoc.logging.Logger;
 import no.kantega.labs.revoc.registry.Registry;
 import org.apache.commons.io.IOUtils;
 import org.objectweb.asm.ClassReader;
@@ -32,6 +34,9 @@ import java.util.List;
  *
  */
 public class RevocClassTransformer implements ClassFileTransformer {
+
+    private static Logger log = LogFactory.getLogger(RevocClassTransformer.class);
+
     private final String[] packages;
 
     public RevocClassTransformer(String[] packages) {
@@ -56,7 +61,7 @@ public class RevocClassTransformer implements ClassFileTransformer {
 
     private byte[] instrumentClass(String className, byte[] classFileBuffer, ClassLoader classLoader) {
         byte[] returnBytes = null;
-        System.out.println("Instrumenting class " + className);
+        log.info("Instrumenting class " + className);
         ClassReader cr = new ClassReader(classFileBuffer);
 
         int classId = Registry.newClassId(className, classLoader);
@@ -69,8 +74,7 @@ public class RevocClassTransformer implements ClassFileTransformer {
             cr.accept(visitor, ClassReader.EXPAND_FRAMES);
 
         } catch (Exception e) {
-            System.out.println("Exception instrumenting class " + className + " from classLoader " + classLoader);
-            e.printStackTrace();
+            log.error("Exception instrumenting class " + className + " from classLoader " + classLoader, e);
         } finally {
             if(old != null) {
                 Thread.currentThread().setContextClassLoader(old);

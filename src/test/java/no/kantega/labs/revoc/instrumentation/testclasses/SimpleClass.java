@@ -28,9 +28,11 @@ public class SimpleClass {
         if(System.currentTimeMillis() <0) {
             System.out.println("This should never happen");
         }
+        new SimpleClass();
         return;
     }
 
+    private static long l = System.currentTimeMillis();
     class InnerClass {
 
         public InnerClass() {

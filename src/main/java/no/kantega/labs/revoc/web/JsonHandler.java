@@ -223,8 +223,8 @@ public class JsonHandler {
             }
             first = false;
             pw.print("["
-                    + frame.getClassId() +","
-                    + frame.getMethodIndex() +","
+                    + Registry.getClassId(frame.getMethodId()) +","
+                    + Registry.getMethodIndex(frame.getMethodId()) +","
                     + TimeUnit.NANOSECONDS.toMicros(data.getTime()) +","
                     + data.getVisits() +",");
             printFrameList(frame.getChildren(), pw);

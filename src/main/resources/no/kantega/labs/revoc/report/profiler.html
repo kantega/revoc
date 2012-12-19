@@ -31,6 +31,15 @@
 
         var data;
 
+        var methodTotals = {};
+        var methodTimes = {};
+        var numFrames =0;
+        var numChildren = 0;
+        var maxChildren = 0;
+
+        var childHist = {};
+
+
         function updateData(hang) {
             var xhr = new XMLHttpRequest();
 
@@ -68,6 +77,11 @@
                 drawFrame(tbl, frames[i], 0, 0, 0);
             }
 
+            alert("Frames: " + numFrames + ", numChildren: " + numChildren + ", avg: " + (numChildren/numFrames) +", max: " + maxChildren)
+
+            for(var i in childHist) {
+                console.log("c: " + i +" = " + childHist[i])
+            }
             root.appendChild(tbl);
 
             tbl.addEventListener("click", function(evt) {
@@ -75,10 +89,7 @@
                 if(cls == "expdr") {
                     var expdr = evt.target;
 
-                    var tr = expdr;
-                    while(tr.tagName != "TR") {
-                        tr = tr.parentNode;
-                    }
+                    var tr = rowOf(expdr);
                     var frameIdx = tr.getAttribute("frame");
 
                     var rows = tbl.getElementsByTagName("tr");
@@ -88,9 +99,20 @@
                     setRowExpanded(tr, expdr.expanded);
 
 
+                } else if(cls == "frame") {
+                    var key = rowOf(evt.target).getAttribute("frame");
+                    alert(parseInt(methodTotals[key]/1000) + " / " + methodTimes[key]);
                 }
 
             });
+        }
+
+        function rowOf(elem) {
+            var tr = elem;
+            while(tr.tagName != "TR") {
+                tr = tr.parentNode;
+            }
+            return tr;
         }
 
         function formatMicroTime(micros) {
@@ -105,10 +127,31 @@
 
         var frameIdx = 0;
         function drawFrame(tbl, frame, level, parentFrame) {
+            var key = frame[0]+"-" +frame[1];
+            {
+                var total = methodTotals[key] ? methodTotals[key] : 0;
+                methodTotals[key] = total += frame[2];
+            }
+            {
+                var times = methodTotals[key] ? methodTotals[key] : 0;
+                methodTimes[key] = times += frame[3];
+            }
+            numFrames++;
+            var childLength = frame[4].length;
+            numChildren += childLength;
+            maxChildren = Math.max(childLength, maxChildren)
+            var currHist = childHist[childLength];
+            if(!currHist) {
+                currHist = 0;
+            }
+            currHist++;
+            childHist[childLength] = currHist;
+
             var rowIdx = ++frameIdx
             var row = document.createElement("tr");
             row.setAttribute("id", "frame-" +rowIdx);
             row.setAttribute("parentFrame", parentFrame);
+            row.setAttribute("frame", key);
 
 
             var childFrames = frame[4];
