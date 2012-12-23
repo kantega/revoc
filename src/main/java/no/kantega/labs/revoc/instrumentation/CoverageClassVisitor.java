@@ -117,6 +117,9 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
         lineCounter.visitEnd();
         FieldVisitor timeCounter = super.visitField(ACC_PRIVATE + ACC_STATIC + ACC_SYNTHETIC + ACC_FINAL, "revoc_times", "Ljava/util/concurrent/atomic/AtomicLongArray;", null, null);
         timeCounter.visitEnd();
+
+        FieldVisitor methodCounter = super.visitField(ACC_PRIVATE + ACC_STATIC + ACC_SYNTHETIC + ACC_FINAL, "revoc_method_counters", "Ljava/util/concurrent/atomic/AtomicLongArray;", null, null);
+        methodCounter.visitEnd();
         if(!staticInjected) {
             MethodVisitor mv = super.visitMethod(ACC_STATIC, "<clinit>", "()V", null, null);
             mv.visitCode();
@@ -134,6 +137,12 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
             mv.visitLdcInsn(classId);
             mv.visitInsn(AALOAD);
             mv.visitFieldInsn(PUTSTATIC, className, "revoc_counters", "Ljava/util/concurrent/atomic/AtomicLongArray;");
+        }
+        {
+            mv.visitFieldInsn(GETSTATIC, "no/kantega/labs/revoc/registry/Registry", "methodVisits", "[Ljava/util/concurrent/atomic/AtomicLongArray;");
+            mv.visitLdcInsn(classId);
+            mv.visitInsn(AALOAD);
+            mv.visitFieldInsn(PUTSTATIC, className, "revoc_method_counters", "Ljava/util/concurrent/atomic/AtomicLongArray;");
         }
         {
             mv.visitFieldInsn(GETSTATIC, "no/kantega/labs/revoc/registry/Registry", "lineTimes", "[Ljava/util/concurrent/atomic/AtomicLongArray;");
