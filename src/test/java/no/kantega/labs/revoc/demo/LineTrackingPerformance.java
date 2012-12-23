@@ -43,7 +43,7 @@ public class LineTrackingPerformance {
 
         ClassReader cr = new ClassReader(stream);
 
-        ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS);
+        ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
         TraceClassVisitor trace = new TraceClassVisitor(writer, new PrintWriter(System.out));
         CoverageClassVisitor visitor = new CoverageClassVisitor(trace, 0);
         cr.accept(visitor, ClassReader.EXPAND_FRAMES);

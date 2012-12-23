@@ -65,7 +65,7 @@ public class RevocClassTransformer implements ClassFileTransformer {
         ClassReader cr = new ClassReader(classFileBuffer);
 
         int classId = Registry.newClassId(className, classLoader);
-        ClassWriter classWriter = new ClassLoaderAwareClassWriter(cr, ClassWriter.COMPUTE_MAXS) {};
+        ClassWriter classWriter = new ClassLoaderAwareClassWriter(cr, ClassWriter.COMPUTE_FRAMES) {};
         CoverageClassVisitor visitor = new CoverageClassVisitor(classWriter, classId);
         ClassLoader old = Thread.currentThread().getContextClassLoader();
         try {
