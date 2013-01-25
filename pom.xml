@@ -86,6 +86,14 @@
         </dependency>
 
 
+        <dependency>
+            <groupId>com.sun</groupId>
+            <artifactId>tools</artifactId>
+            <scope>system</scope>
+            <version>v</version>
+            <systemPath>${java.home}/../lib/tools.jar</systemPath>
+        </dependency>
+
     </dependencies>
 
     <properties>
@@ -99,8 +107,8 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>2.4</version>
                 <configuration>
-                    <source>1.6</source>
-                    <target>1.6</target>
+                    <source>1.7</source>
+                    <target>1.7</target>
                 </configuration>
             </plugin>
             <plugin>
@@ -111,7 +119,6 @@
                         <manifestEntries>
                             <Agent-Class>no.kantega.labs.revoc.agent.RevocAgent</Agent-Class>
                             <Premain-Class>no.kantega.labs.revoc.agent.RevocAgent</Premain-Class>
-                            <Main-Class>no.kantega.labs.revoc.agent.RevocMain</Main-Class>
                         </manifestEntries>
                     </archive>
                 </configuration>

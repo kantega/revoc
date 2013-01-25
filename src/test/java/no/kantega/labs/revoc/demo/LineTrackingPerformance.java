@@ -58,13 +58,15 @@ public class LineTrackingPerformance {
 
 
             System.out.println("Untouched main class");
-            for(int i = 0; i < 5; i++) {
+            for(int i = 0; i < 50; i++) {
+                long before = System.currentTimeMillis();
                 LongLoop.main(null);
+                System.out.println(System.currentTimeMillis() - before);
             }
 
             System.out.println("Instrumented main class");
 
-            invokeMainMethodUsingReflection(clazz.getName(), writer.toByteArray(), 5);
+            invokeMainMethodUsingReflection(clazz.getName(), writer.toByteArray(), 50);
 
 
             final CoverageData coverageData = Registry.getCoverageData();

@@ -32,7 +32,9 @@ public class ClassUtils {
 
         Method mainMethod = helloWorldClass.getMethod("main", (new String[0]).getClass());
         for(int i = 0 ; i < times; i++) {
+            long before = System.currentTimeMillis();
             mainMethod.invoke(null, new Object[]{new String[]{}});
+            System.out.println(System.currentTimeMillis() - before);
         }
     }
 

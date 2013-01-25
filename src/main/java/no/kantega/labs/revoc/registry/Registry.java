@@ -16,11 +16,6 @@
 
 package no.kantega.labs.revoc.registry;
 
-import gnu.trove.map.TLongIntMap;
-import gnu.trove.map.TLongLongMap;
-import gnu.trove.map.hash.TLongIntHashMap;
-import gnu.trove.map.hash.TLongLongHashMap;
-import gnu.trove.procedure.TLongLongProcedure;
 import no.kantega.labs.revoc.report.HtmlReport;
 import no.kantega.labs.revoc.source.CompondSourceSource;
 import no.kantega.labs.revoc.source.MavenProjectSourceSource;
@@ -28,6 +23,7 @@ import no.kantega.labs.revoc.source.MavenSourceArtifactSourceSource;
 import sun.misc.Unsafe;
 
 import java.io.*;
+import java.lang.invoke.*;
 import java.lang.reflect.Field;
 import java.net.URL;
 import java.util.*;
@@ -43,12 +39,7 @@ import java.util.concurrent.atomic.AtomicLongArray;
 public abstract class Registry {
 
     private static int classCount = 0;
-    private static ThreadLocal<ThreadLocalBuffer> threadLocalBuffer = new ThreadLocal<ThreadLocalBuffer>() {
-        @Override
-        protected ThreadLocalBuffer initialValue() {
-            return new ThreadLocalBuffer();
-        }
-    };
+
     private static final int INITIAL_NUM_CLASSES = 1;
     private static String[] classNames;
     private static ConcurrentMap<Integer, ClassNameMap> classNamesMap;
@@ -57,7 +48,7 @@ public abstract class Registry {
     private static int[] classLoaders;
     public static int[][] lines;
     public static AtomicLongArray[] lineVisits;
-    public static AtomicLongArray[] methodVisits;
+    public static UnsafeAtomicLongArray[] methodVisits;
     public static int[][][] methodLines;
     public static AtomicLongArray[] lineTimes;
     public static AtomicIntegerArray classTouches;
@@ -86,11 +77,11 @@ public abstract class Registry {
     private static String[][] methodNames;
     private static String[][] methodDescs;
     private static List<NamedClassLoader> classLoaderList = new ArrayList<NamedClassLoader>();
-    private static int[][] methodFirstLines;
+    public static int[][] methodFirstLines;
 
-    private static Unsafe unsafe;
+    private static final Unsafe unsafe;
 
-    private static long offset;
+    private static final long offset;
 
     static {
         try {
@@ -361,22 +352,29 @@ public abstract class Registry {
     public static ThreadLocalBuffer getThreadLocalBuffer() {
 
         Thread thread = Thread.currentThread();
-        Object counter = unsafe.getObject(thread, offset);
+        Object counter = getRunnable(thread);
 
-        if(counter == null) {
-            return newBuffer();
+        if(counter != null) {
+            try {
+                return (ThreadLocalBuffer) counter;
+            } catch (Exception e) {
+                return newBuffer(thread);
+            }
         }
-        try {
-            return (ThreadLocalBuffer) counter;
-        } catch (Exception e) {
-            return newBuffer();
-        }
+        return newBuffer(thread);
 
     }
 
-    private static ThreadLocalBuffer newBuffer() {
-        ThreadLocalBuffer buffer = new ThreadLocalBuffer();
-        unsafe.putObject(Thread.currentThread(), offset, buffer);
+    private static Object getRunnable(Thread thread) {
+        return unsafe.getObject(thread, offset);
+    }
+
+    private static ThreadLocalBuffer newBuffer(Thread thread) {
+        return putRunnable(thread, new ThreadLocalBuffer());
+    }
+
+    private static ThreadLocalBuffer putRunnable(Thread thread, ThreadLocalBuffer buffer) {
+        unsafe.putObject(thread, offset, buffer);
         return buffer;
     }
 
@@ -400,13 +398,11 @@ public abstract class Registry {
 
     public static void registerOneLineVisited(long methodId) {
         //getThreadLocalBuffer().visitLine(methodId, 1, 1);
-        getThreadLocalBuffer().visitMethod(methodId, Registry.time);
+        getThreadLocalBuffer().visitMethod(methodId);
     }
 
-    public static void registerLineVisitedMV(AtomicLongArray lineVisits, int lineId, int numvisits) {
-        if(numvisits != 0) {
-            lineVisits.addAndGet(lineId, numvisits);
-        }
+    public static void registerLineVisited(AtomicLongArray lineVisits, int lineId, int numvisits) {
+        //lineVisits.addAndGet(lineId, numvisits);
     }
 
 
@@ -427,6 +423,31 @@ public abstract class Registry {
         }
     }
 
+    public static CallSite lineVisitBootstrap(MethodHandles.Lookup lookup, String name, MethodType methodType, int classId, int lineIndex) throws NoSuchMethodException, IllegalAccessException {
+        AtomicLongArray visitStore = Registry.lineVisits[classId];
+
+        MethodHandle registerLine = lookup.findStatic(Registry.class, "registerLineVisited", MethodType.methodType(void.class, AtomicLongArray.class, int.class, int.class));
+
+        MethodHandle methodHandle = MethodHandles.insertArguments(registerLine, 0, visitStore, lineIndex);
+
+        return new ConstantCallSite(methodHandle);
+
+    }
+
+    public static CallSite methodVisitBootstrap(MethodHandles.Lookup lookup, String name, MethodType methodType, int classId, int methodIndex) throws NoSuchMethodException, IllegalAccessException {
+
+        UnsafeAtomicLongArray visitsArray = Registry.methodVisits[classId];
+
+
+        MethodHandle incrementHandle = lookup.findVirtual(UnsafeAtomicLongArray.class, "incrementOffset", MethodType.methodType(void.class, int.class));
+
+
+        MethodHandle incr = MethodHandles.insertArguments(incrementHandle, 1, methodIndex);
+        MethodHandle bound = incr.bindTo(visitsArray);
+
+        return new ConstantCallSite(bound);
+
+    }
     public static void linesTouched(int classId) {
         classTouches.set(classId, 1);
     }
@@ -498,8 +519,8 @@ public abstract class Registry {
             }
 
             {
-                AtomicLongArray[] old = methodVisits;
-                AtomicLongArray[] methodVisits = new AtomicLongArray[old.length * 2];
+                UnsafeAtomicLongArray[] old = methodVisits;
+                UnsafeAtomicLongArray[] methodVisits = new UnsafeAtomicLongArray[old.length * 2];
                 System.arraycopy(old, 0, methodVisits, 0, old.length);
                 Registry.methodVisits = methodVisits;
             }
@@ -668,7 +689,7 @@ public abstract class Registry {
     }
 
     public static void registerMethods(int classId, List<String> methodNames, List<String> methodDescs, Map<Integer, List<Integer>> methodLineNumbers) {
-        methodVisits[classId]  = new AtomicLongArray(methodNames.size());
+        methodVisits[classId]  = new UnsafeAtomicLongArray(methodNames.size());
         Registry.methodNames[classId] = new String[methodNames.size()];
         Registry.methodDescs[classId] = new String[methodNames.size()];
         for (int i = 0; i < methodNames.size(); i++) {
@@ -738,7 +759,7 @@ public abstract class Registry {
             lines = new int[INITIAL_NUM_CLASSES][];
             lineVisits = new AtomicLongArray[INITIAL_NUM_CLASSES];
             methodLines = new int[INITIAL_NUM_CLASSES][][];
-            methodVisits = new AtomicLongArray[INITIAL_NUM_CLASSES];
+            methodVisits = new UnsafeAtomicLongArray[INITIAL_NUM_CLASSES];
             methodFirstLines = new int[INITIAL_NUM_CLASSES][];
             lineTimes = new AtomicLongArray[INITIAL_NUM_CLASSES];
             branchPoints = new BranchPoint[INITIAL_NUM_CLASSES][];
@@ -759,10 +780,10 @@ public abstract class Registry {
                     }
                 }
                 {
-                    AtomicLongArray lvs = methodVisits[i];
+                    UnsafeAtomicLongArray lvs = methodVisits[i];
                     for (int l = 0; l < lvs.length(); l++) {
                         if (lvs.get(l) >= 0) {
-                            lvs.set(l,  0);
+                            lvs.set(l, 0);
                         }
                     }
                 }
@@ -1017,381 +1038,5 @@ public abstract class Registry {
         }
     }
 
-    public static final class ThreadLocalBuffer implements Runnable {
-        private static final int LENGTH_PER_METHOD = 32 * 2 + 1;
-        private static final int BUFFER_LENGTH = 8000;
-        private static final int METHOD_BUFFER_SIZE = 4096*3*2;
-        private long stacktop = -1;
-        private final long[] lineVisits = new long[BUFFER_LENGTH];
-        private int lineIndex;
-        private int lineCursor;
-        private final long[] methodVisits = new long[METHOD_BUFFER_SIZE];
-        private int methodIndex;
 
-        private long lastFlush;
-
-        private long method1 = -1;
-        private long times1 = 0;
-        private long time1 = 0;
-
-        private long method2 = -1;
-        private long times2 = 0;
-        private long time2 = 0;
-
-        private long method3 = -1;
-        private long times3 = 0;
-        private long time3 = 0;
-
-        private long method4 = -1;
-        private long times4 = 0;
-        private long time4 = 0;
-
-
-        private long method5 = -1;
-        private long times5 = 0;
-        private long time5 = 0;
-
-
-        private long method6 = -1;
-        private long times6 = 0;
-        private long time6 = 0;
-
-        private TLongLongMap methodCountMap = new TLongLongHashMap(2000, 0.5f, 0, 0);
-        private TLongLongMap methodTimeMap = new TLongLongHashMap(2000, 0.5f, 0, 0);
-
-        private FlushMethodsAction flushMethodsAction = new FlushMethodsAction(methodCountMap);
-
-
-        private int flushes;
-
-        private TLongIntMap methodIndexMap = new TLongIntHashMap(1000, 0.5f, -1, -1);
-
-        public ThreadLocalBuffer() {
-            for(int i = 0; i < BUFFER_LENGTH; i+= LENGTH_PER_METHOD) {
-                lineVisits[i] = -1;
-            }
-        }
-
-        public final void visitMethod(long methodId, long time) {
-
-            // We cache the index of the three most used methods after each flush
-            if(method1 == methodId) {
-                time1 = time;
-                times1 ++;
-            } else if(method2 == methodId) {
-                time2 = time;
-                times2 ++;
-            } else if(method3 == methodId) {
-                time3 = time;
-                times3 ++;
-            } else if(method4 == methodId) {
-                time4 = time;
-                times4 ++;
-            } else if(method5 == methodId) {
-                time5 = time;
-                times5 ++;
-            } else if(method6 == methodId) {
-                time6 = time;
-                times6 ++;
-            }else {
-                appendMethod(methodId, time);
-            }
-
-        }
-
-        private void appendMethod(long methodId, long time) {
-            if(methodIndex == METHOD_BUFFER_SIZE) {
-                flushMethodVisits();
-            }
-            methodVisits[methodIndex++] = methodId;
-            methodVisits[methodIndex++] = time;
-        }
-
-
-        class FlushMethodsAction implements TLongLongProcedure {
-             long max, max2, max3, max4, max5, max6;
-             long maxMethod, maxMethod2, maxMethod3, maxMethod4, maxMethod5, maxMethod6;
-             
-             private final TLongLongMap methodIndexMap;
-
-             FlushMethodsAction(TLongLongMap methodIndexMap) {
-                 this.methodIndexMap = methodIndexMap;
-             }
-
-             @Override
-             public boolean execute(long methodId, long visits) {
-                 if(visits > max) {
-                     max = visits;
-                     maxMethod = methodId;
-                 } else if(visits > max2) {
-                     max2 = visits;
-                     maxMethod2 = methodId;
-                 } else if(visits > max3) {
-                     max3 = visits;
-                     maxMethod3 = methodId;
-                 } else if(visits > max4) {
-                     max4 = visits;
-                     maxMethod4 = methodId;
-                 } else if(visits > max5) {
-                     max5 = visits;
-                     maxMethod5 = methodId;
-                 }
-                 else if(visits > max6) {
-                     max6 = visits;
-                     maxMethod6 = methodId;
-                 }
-
-                 flushMethodVisits(methodId, methodTimeMap.get(methodId), visits);
-                 methodIndexMap.put(methodId, 0);
-
-                 return true;
-             }
-
-             public void reset() {
-                 max = 0;
-                 maxMethod = -1;
-                 max2 = 0;
-                 maxMethod2 = -1;
-                 max3 = 0;
-                 maxMethod3 = -1;
-             }
-         }
-        public final void flushMethodVisits() {
-
-            //flushes++;
-            if(method1 != -1) {
-                flushMethodVisits(method1, time1, times1);
-            }
-            if(method2 != -1) {
-                flushMethodVisits(method2, time2, times2);
-            }
-            if(method3 != -1) {
-                flushMethodVisits(method3, time3, times3);
-            }
-            
-            if(method4 != -1) {
-                flushMethodVisits(method4, time4, times4);
-            }
-
-            if(method5 != -1) {
-                flushMethodVisits(method5, time5, times5);
-            }
-
-            if(method6 != -1) {
-                flushMethodVisits(method6, time6, times6);
-            }
-
-            for (int i = 0; i < methodIndex; i+=2) {
-                long methodId = methodVisits[i];
-                methodCountMap.adjustOrPutValue(methodId, 1, 1);
-
-                long time = methodVisits[i+1];
-                methodTimeMap.put(methodId, time);
-            }
-
-            methodCountMap.forEachEntry(flushMethodsAction);
-            methodIndex = 0;
-
-            if(flushMethodsAction.maxMethod>0 && flushMethodsAction.max > times1) {
-                method1 = flushMethodsAction.maxMethod;
-            }
-            if(flushMethodsAction.maxMethod2>0  && flushMethodsAction.max2 > times2) {
-                method2 = flushMethodsAction.maxMethod2;
-            }
-            if(flushMethodsAction.maxMethod3>0 && flushMethodsAction.max3 > times3) {
-                method3 = flushMethodsAction.maxMethod3;
-            }
-            if(flushMethodsAction.maxMethod4>0 && flushMethodsAction.max4 > times4) {
-                method4 = flushMethodsAction.maxMethod4;
-            }
-            if(flushMethodsAction.maxMethod5>0 && flushMethodsAction.max5 > times5) {
-                method5 = flushMethodsAction.maxMethod5;
-            }
-            if(flushMethodsAction.maxMethod6>0 && flushMethodsAction.max6 > times6) {
-                method6 = flushMethodsAction.maxMethod6;
-            }
-
-            times1 = 0;
-            times2 = 0;
-            times3 = 0;
-
-            times4 = 0;
-            times5 = 0;
-            times6 = 0;
-
-            flushMethodsAction.reset();
-
-        }
-
-        private void flushMethodVisits(long methodId, long lastTime, long visits) {
-            int cid  = (int)(methodId >> 32);
-            int mid = (int) (methodId & 0xFFFFFFFFl);
-            Registry.methodVisits[cid].addAndGet(mid, visits);
-
-            Registry.classTouches.lazySet(cid, 1);
-
-            if(methodFirstLines[cid][mid] >= Registry.lineTimes[cid].length()) {
-                return;
-            }
-            Registry.lineTimes[cid].set(methodFirstLines[cid][mid], lastTime);
-
-        }
-
-        public final void flushLineVisits(boolean clear) {
-
-            long[] visits = lineVisits;
-            //flushes++;
-            for(int i = 0; i < lineIndex;)  {
-
-                long methodId = visits[i];
-                long lines = visits[i+1];
-                long methodTime = visits[i+2];
-                long visitedLines = visits[i+3];
-                long methodVisits = visits[i+4];
-                flushMethodVisits(methodId, methodTime, methodVisits);
-                visits[i+4] = 0;
-                flushVisitedLinesTime(methodId, 0, (int)lines, methodTime, visitedLines);
-
-                i+=5;
-                for(int l = 0; l < lines; l++,i++)  {
-
-                    long numVisits = visits[i];
-
-                    if(numVisits != 0) {
-                        visits[i] = 0;
-                        flushLineVisits(numVisits, methodId, l);
-                    }
-                }
-
-
-            }
-            if(clear) {
-                methodIndexMap.clear();
-                Arrays.fill(visits, 0);
-                lineIndex = 0;
-            }
-        }
-
-        private void flushLineVisits(long times, long methodId, int lineIndex) {
-            if(times == 0) {
-                return;
-            }
-            int cid  = (int)(methodId >> 32);
-            int mid = (int) (methodId & 0xFFFFFFFFl);
-            AtomicLongArray classVisits = Registry.lineVisits[cid];
-
-            int firstLine = methodFirstLines[cid][mid];
-            if(lineIndex+firstLine >= classVisits.length()) {
-                return;
-            }
-            classVisits.addAndGet(lineIndex + firstLine, times);
-
-        }
-
-        private  void flushLineTime(long methodId, int lineIndex, long time) {
-            int cid  = (int)(methodId >> 32);
-            int mid = (int) (methodId & 0xFFFFFFFFl);
-            int firstLine = methodFirstLines[cid][mid];
-            AtomicLongArray lineTime = Registry.lineTimes[cid];
-            flushLineTime(lineIndex, firstLine, time, lineTime);
-
-
-        }
-
-        private void flushLineTime(int lineIndex, int firstLine, long time, AtomicLongArray lineTime) {
-            int index = lineIndex + firstLine;
-            if(index >= lineTime.length()) {
-                return;
-            }
-            lineTime.set(index, time);
-        }
-
-        public final long[] visitMultiMethod(long methodId, long time, long visitedLines, int lines) {
-
-            final long[] visits = lineVisits;
-
-            int index = methodIndexMap.putIfAbsent(methodId, lineIndex);
-
-            if(index == -1) {
-                index = lineIndex;
-                // We might need to flush
-                int nextIndex = index + 5 + lines;
-                if(nextIndex >= BUFFER_LENGTH) {
-                    flushLineVisits(true);
-                    index = lineIndex;
-                    nextIndex = index + 5 + lines;
-                }
-
-                visits[index] = methodId;
-                visits[index+1] = lines;
-
-                lineIndex = nextIndex;
-
-            }
-
-            long lastTime = visits[index+2];
-            long lastVisitedLines = visits[index+3];
-            if(lastTime == 0) {
-                visits[index+2] = time;
-                visits[index+3] = visitedLines;
-            } else if(visitedLines != lastVisitedLines) {
-                flushVisitedLinesTime(methodId, visitedLines, lines, lastTime, lastVisitedLines);
-                visits[index+2] = time;
-                visits[index+3] = visitedLines;
-            }  else if(lastTime != time) {
-                visits[index+2] = time;
-            }
-            visits[index+4]++;
-            lineCursor = index+5;
-
-            return visits;
-        }
-
-        private void flushVisitedLinesTime(long methodId, long visitedLines, int lines, long lastTime, long lastVisitedLines) {
-            int cid  = (int)(methodId >> 32);
-            int mid = (int) (methodId & 0xFFFFFFFFl);
-            int firstLine = methodFirstLines[cid][mid];
-            AtomicLongArray lineTime = Registry.lineTimes[cid];
-            for(int i = 0; i < lines; i++) {
-                long mask = 1 << i;
-                if((lastVisitedLines & mask) != 0 && (visitedLines & mask) == 0)  {
-                    flushLineTime(i, firstLine, lastTime, lineTime);
-                }
-            }
-        }
-
-        public final void visitLine(long[] visits, int numvisits, int lineIndex) {
-            visits[this.lineCursor+lineIndex] += numvisits;
-        }
-
-        public final void pushStack(long methodId) {
-            if(stacktop == -1) {
-                stacktop = methodId;
-            }
-
-        }
-
-        public final void popStack(long methodId, long time, int lines) {
-
-            lineCursor+=lines;
-            if(stacktop == methodId) {
-                lastFlush = time;
-                flushMethodVisits();
-                flushLineVisits(false);
-                stacktop =-1;
-
-                //System.out.println("NUmFlush: " + flushes);
-                flushes = 0;
-            } else if (time != lastFlush) {
-                //lastFlush = time;
-                //flushLineVisits();
-                //flushMethodVisits();
-            }
-        }
-
-        @Override
-        public void run() {
-
-        }
-    }
 }

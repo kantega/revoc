@@ -22,7 +22,7 @@ package no.kantega.labs.helloworld;
 public class LongLoop {
 
     public static void main(String[] args) {
-        long before = System.currentTimeMillis();
+
         long l = 0;
         Thread[] threads = new Thread[100];
         for(int t=0; t < 1; t++) {for (int i = 0; i < threads.length; i++) {
@@ -43,7 +43,7 @@ public class LongLoop {
             }
         }}
 
-        System.out.println(System.currentTimeMillis() - before);
+
     }
 
     public static long loop() {

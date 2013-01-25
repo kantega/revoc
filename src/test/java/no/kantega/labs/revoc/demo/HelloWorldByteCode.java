@@ -16,7 +16,7 @@
 
 package no.kantega.labs.revoc.demo;
 
-import no.kantega.labs.revoc.analysis.OneLiner;
+import no.kantega.labs.helloworld.HelloWorld;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.util.TraceClassVisitor;
@@ -33,7 +33,7 @@ public class HelloWorldByteCode {
     public static void main(String[] args) throws IOException {
 
 
-        Class clazz = OneLiner.class;
+        Class clazz = HelloWorld.class;
         InputStream inputStream = clazz.getResourceAsStream(clazz.getSimpleName() + ".class");
 
         ClassReader reader = new ClassReader(inputStream);
