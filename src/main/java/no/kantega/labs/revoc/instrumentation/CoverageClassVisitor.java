@@ -500,6 +500,15 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
                     mv.visitInsn(IADD);
                     mv.visitInsn(IASTORE);
                     }
+                    if(trackTime) {
+
+                        mv.visitVarInsn(ALOAD, timeVisitsLocalVariable);
+                        visitIntConstantInstruction(methodLineNumbers.get(lineNumber));
+                        mv.visitFieldInsn(GETSTATIC, "no/kantega/labs/revoc/registry/Registry", "time", "J");
+                        mv.visitInsn(LASTORE);
+
+
+                    }
                 }
 
 

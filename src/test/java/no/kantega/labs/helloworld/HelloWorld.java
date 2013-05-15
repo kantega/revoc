@@ -22,7 +22,18 @@ package no.kantega.labs.helloworld;
 public class HelloWorld {
 
     public static void main(String[] args) {
+        int oneline = 0;
 
+        int t = 0;
+        for (int i = 0; i < 80; i++) {
+            t++;
+        }
+
+        if (t == 0) {
+            System.out.println("blue");
+        }
+
+        System.out.println(80);
 
 
     }

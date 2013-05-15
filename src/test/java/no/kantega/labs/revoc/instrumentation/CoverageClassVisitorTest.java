@@ -180,7 +180,7 @@ public class CoverageClassVisitorTest {
                 int classId = Registry.newClassId(clazz.getName().replace('.', '/'), clazz.getClassLoader());
 
                 ClassReader cr = new ClassReader(inputStream);
-                ClassWriter cw = new ClassWriter(cr, ClassWriter.COMPUTE_MAXS);
+                ClassWriter cw = new ClassWriter(cr, ClassWriter.COMPUTE_FRAMES);
                 CoverageClassVisitor visitor = new CoverageClassVisitor(new TraceClassVisitor(cw,new PrintWriter(System.out)), classId);
                 configureClassVisitor(visitor);
                 cr.accept(visitor, ClassReader.EXPAND_FRAMES);
