@@ -676,29 +676,25 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
                     if(methodLineNumbers.size() != 1) {
 
 
-                        if(numNonOneLiners(oneTimeLines) > 0) {
-                            mv.visitVarInsn(ALOAD, threadBufferLocal);
-                        }
+
                         mv.visitVarInsn(ALOAD, threadBufferLocal);
+                        mv.visitInsn(DUP);
                         mv.visitLdcInsn(((long)classId << 32 | (long) methodNames.size()));
                         mv.visitVarInsn(LLOAD, linesVisitedLocalVariable);
                         visitIntConstantInstruction(lineNumberLocalVariables.size());
                         mv.visitMethodInsn(INVOKEVIRTUAL, "no/kantega/labs/revoc/registry/ThreadLocalBuffer", "visitMultiMethod", "(JJI)I");
-                        if(numNonOneLiners(oneTimeLines) == 0) {
-                            mv.visitInsn(POP);
-                        }
 
-                        for(int i = 0; i < numNonOneLiners(oneTimeLines)-1; i++) {
+                        for(int i = 0; i < lineNumberLocalVariables.size()-1; i++) {
                             mv.visitInsn(DUP2);
                         }
                         int i = 0;
                         for (Integer lineNumber : lineNumberLocalVariables.keySet()) {
-                            if(!oneTimeLines.get(methodLineNumbers.get(lineNumber))) {
-                                mv.visitVarInsn(ILOAD, lineNumberLocalVariables.get(lineNumber));
-                                visitIntConstantInstruction(i);
-                                mv.visitLdcInsn((long)classId << 32 | (long) methodNames.size());
-                                mv.visitMethodInsn(INVOKEVIRTUAL, "no/kantega/labs/revoc/registry/ThreadLocalBuffer", "visitLine", "(IIIJ)V");
-                            }
+
+                            mv.visitVarInsn(ILOAD, lineNumberLocalVariables.get(lineNumber));
+                            visitIntConstantInstruction(i);
+                            mv.visitLdcInsn((long)classId << 32 | (long) methodNames.size());
+                            mv.visitMethodInsn(INVOKEVIRTUAL, "no/kantega/labs/revoc/registry/ThreadLocalBuffer", "visitLine", "(IIIJ)V");
+
                             i++;
                         }
 

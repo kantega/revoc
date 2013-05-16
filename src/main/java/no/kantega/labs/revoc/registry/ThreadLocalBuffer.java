@@ -174,6 +174,7 @@ public final class ThreadLocalBuffer implements Runnable {
                 }
 
                 flushVisitedLinesTime(methodId, visitedLines, (int) lines, methodTime, -1);
+                visits[i+5] = 0;
 
             }
 

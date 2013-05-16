@@ -166,7 +166,7 @@ public abstract class Registry {
 
         NamedClassLoader(ClassLoader classLoader) {
             this.classLoader = classLoader;
-            this.name = classLoader.toString();
+            this.name = classLoader.toString().replaceAll("\n",", ").replaceAll("\r","");
         }
 
         public ClassLoader getClassLoader() {
