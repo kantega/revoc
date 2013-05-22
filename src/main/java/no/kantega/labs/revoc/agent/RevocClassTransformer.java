@@ -82,9 +82,9 @@ public class RevocClassTransformer implements ClassFileTransformer {
         }
         int[] lines = visitor.getLineIndexes();
         if(visitor.isInterface()) {
-            System.out.println("Ignoring interface " + className);
+            log.info("Ignoring interface " + className);
         } else if (Registry.isClassRegistered(className, classLoader) ) {
-            System.out.println("Instrumenting already registered class " + className);
+            log.info("Instrumenting already registered class " + className);
             returnBytes = classWriter.toByteArray();
         } else if ( lines.length > 0 && visitor.getSource() != null) {
             Registry.registerClass(className, classLoader, visitor.getSource());
@@ -93,7 +93,7 @@ public class RevocClassTransformer implements ClassFileTransformer {
             Registry.registerMethods(classId, visitor.getMethodNames(), visitor.getMethodDescs(), visitor.getMethodLineNumbers());
             returnBytes = classWriter.toByteArray();
         } else {
-            System.out.println("Ignoring non-debug class " + className);
+            log.info("Ignoring non-debug class " + className);
         }
 
         analyzeInnerClasses(visitor.getInnerClasses(), classLoader, className);
