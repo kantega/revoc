@@ -763,7 +763,7 @@ public abstract class Registry {
             methodFirstLines = new int[INITIAL_NUM_CLASSES][];
             lineTimes = new AtomicLongArray[INITIAL_NUM_CLASSES];
             branchPoints = new BranchPoint[INITIAL_NUM_CLASSES][];
-
+            getThreadLocalBuffer().reset();
         }
 
     }
