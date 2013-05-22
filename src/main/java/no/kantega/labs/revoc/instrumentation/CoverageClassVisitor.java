@@ -687,15 +687,13 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
                         for(int i = 0; i < lineNumberLocalVariables.size()-1; i++) {
                             mv.visitInsn(DUP2);
                         }
-                        int i = 0;
                         for (Integer lineNumber : lineNumberLocalVariables.keySet()) {
 
                             mv.visitVarInsn(ILOAD, lineNumberLocalVariables.get(lineNumber));
-                            visitIntConstantInstruction(i);
+                            visitIntConstantInstruction(methodLineNumbers.get(lineNumber));
                             mv.visitLdcInsn((long)classId << 32 | (long) methodNames.size());
                             mv.visitMethodInsn(INVOKEVIRTUAL, "no/kantega/labs/revoc/registry/ThreadLocalBuffer", "visitLine", "(IIIJ)V");
 
-                            i++;
                         }
 
 
