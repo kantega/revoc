@@ -157,7 +157,7 @@ public class JsonHandler {
         sb.append("[");
         while (classLoaders.hasNext()) {
             Registry.NamedClassLoader loader = classLoaders.next();
-            sb.append(System.identityHashCode(loader)).append(",").append("\"").append(loader.getName()).append("\"");
+            sb.append(System.identityHashCode(loader.getClassLoader())).append(",").append("\"").append(loader.getName()).append("\"");
             if(classLoaders.hasNext()) {
                 sb.append(",");
             }
