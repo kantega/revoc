@@ -59,7 +59,7 @@ public class RevocClassTransformer implements ClassFileTransformer {
 
     }
 
-    private byte[] instrumentClass(String className, byte[] classFileBuffer, ClassLoader classLoader) {
+    private synchronized byte[] instrumentClass(String className, byte[] classFileBuffer, ClassLoader classLoader) {
         byte[] returnBytes = null;
         log.info("Instrumenting class " + className);
         ClassReader cr = new ClassReader(classFileBuffer);
@@ -83,11 +83,16 @@ public class RevocClassTransformer implements ClassFileTransformer {
         int[] lines = visitor.getLineIndexes();
         if(visitor.isInterface()) {
             log.info("Ignoring interface " + className);
-        } else if (Registry.isClassRegistered(className, classLoader) ) {
+        } else if(visitor.isEnum()) {
+            log.info("Ignoring interface " + className);
+        }else if (Registry.isClassRegistered(className, classLoader) ) {
             log.info("Instrumenting already registered class " + className);
             returnBytes = classWriter.toByteArray();
         } else if ( lines.length > 0 && visitor.getSource() != null) {
-            Registry.registerClass(className, classLoader, visitor.getSource());
+            int id = Registry.registerClass(className, classLoader, visitor.getSource());
+            if(id != classId) {
+                System.out.println("WAT");
+            }
             Registry.registerLines(classId, lines);
             Registry.registerBranchPoints(classId, visitor.getBranchPoints());
             Registry.registerMethods(classId, visitor.getMethodNames(), visitor.getMethodDescs(), visitor.getMethodLineNumbers());
@@ -126,6 +131,13 @@ public class RevocClassTransformer implements ClassFileTransformer {
         if (className.startsWith("no/kantega/labs/revoc/")) {
             return false;
         }
+        /*
+        if( className.contains("$JaxbAccessor")) {
+            return false;
+        }
+        if( className.contains("_JaxbXducedAccessor_")) {
+            return false;
+        } */
         if (className.startsWith("com/sun") ||
                 className.startsWith("java/") ||
                 className.startsWith("javax/") ||
