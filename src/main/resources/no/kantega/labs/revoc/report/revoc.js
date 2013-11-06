@@ -62,7 +62,8 @@ window.addEventListener("load", function() {
                 console.log("Browser doesn't support WebSocket, Falling back to Ajax")
                 return false;
             }
-            var location = document.location.toString().replace('http://', 'ws://').replace('https://', 'wss://') + "ws/ws";
+            var location = "ws://" + window.location.hostname + (window.location.port != 80 ? ":" + window.location.port : "") +window.location.pathname+ "ws/ws";
+            console.log("Using URL: " + location)
             _ws = new WebSocket(location);
             _ws.onerror = this._onerror;
             _ws.onopen = this._onopen;
@@ -322,6 +323,7 @@ window.addEventListener("load", function() {
     }
 
     function getSourceReport(clsLine, scroll) {
+        console.log("clsLine.className" + clsLine.className)
         if (!currentClick || clsLine.className != currentClick.className) {
             var xhr = new XMLHttpRequest();
 
@@ -399,6 +401,9 @@ window.addEventListener("load", function() {
 
         var className = clsLine.className.substr(clsLine.className.indexOf("+")+1);
         var classLoader = clsLine.className.substr(0, clsLine.className.indexOf("+"));
+
+
+        location.hash= "#class=" + clsLine.className;
 
         $("#sourcetitle").innerHTML = className.replace(/\//g,".");
         $("#sourcecoverage").innerHTML = getCoverage(clsLine.className) +"%";
@@ -629,6 +634,7 @@ window.addEventListener("load", function() {
 
     function showOverview(evt) {
 
+        location.hash ="";
         var selectedClassLoader = classLoaderSelector.value;
 
         var filter = $("#filter").value;
@@ -834,8 +840,14 @@ window.addEventListener("load", function() {
 
     listeners.push(function(changed, first) {
         if(first) {
-            showOverview()
-            setFullScreen("overview");
+            if(location.hash && location.hash.indexOf("class=")) {
+                var className = location.hash.substr(location.hash.indexOf("class=")+6);
+                console.log("Class name: " + className)
+                getSourceReport({className: className, lineId: 1});
+            } else {
+                showOverview()
+                setFullScreen("overview");
+            }
         }
     });
 

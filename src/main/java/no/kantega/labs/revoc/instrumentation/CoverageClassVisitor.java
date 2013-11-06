@@ -792,6 +792,10 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
         return (access & Opcodes.ACC_INTERFACE) != 0;
     }
 
+    public boolean isEnum() {
+        return (access & Opcodes.ACC_ENUM) != 0;
+    }
+
     public List<String> getInnerClasses() {
         return innerClasses;
     }
