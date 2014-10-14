@@ -63,7 +63,7 @@ public final class ThreadLocalBuffer implements Runnable {
     }
 
     public final void visitLine(int cursor, int numvisits, int lineIndex, long methodId) {
-        if(cursor != -1)  {
+        if(cursor != -1 && numvisits != 0)  {
             lineVisits[cursor + lineIndex] += numvisits;
         } else {
             flushLineVisits(numvisits, methodId, lineIndex);
@@ -149,7 +149,7 @@ public final class ThreadLocalBuffer implements Runnable {
         return (int) lineIndex;
     }
 
-    public final void flushLineVisits() {
+    private void flushLineVisits() {
 
         long[] visits = multiMethodVisits;
         //flushes++;
@@ -195,7 +195,7 @@ public final class ThreadLocalBuffer implements Runnable {
         return current;
     }
 
-    public final void flushMethodVisits() {
+    private void flushMethodVisits() {
 
         for (int i = 0; i < METHOD_BUFFER_SIZE; i += 3) {
             long methodId = getMethodAtIndex(i, methodVisits);

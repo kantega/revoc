@@ -386,15 +386,6 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
             mv.visitLabel(before);
         }
 
-        private void visitMethodInvokeDynamic() {
-            mv.visitInvokeDynamicInsn("method_visited", "()V",
-                    new Handle(Opcodes.H_INVOKESTATIC,
-                            "no/kantega/labs/revoc/registry/Registry",
-                            "methodVisitBootstrap",
-                            "(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;II)Ljava/lang/invoke/CallSite;"),
-                    classId, methodNames.size());
-        }
-
         private void initalizeProfilingLocalVariables() {
             if(profileTime) {
                 nanoTime();

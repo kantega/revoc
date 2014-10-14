@@ -40,7 +40,7 @@ public abstract class Registry {
 
     private static int classCount = 0;
 
-    private static final int INITIAL_NUM_CLASSES = 1;
+    private static final int INITIAL_NUM_CLASSES = 1000;
     private static String[] classNames;
     private static ConcurrentMap<Integer, ClassNameMap> classNamesMap;
 
@@ -54,7 +54,7 @@ public abstract class Registry {
     public static AtomicIntegerArray classTouches;
     private static BranchPoint[][] branchPoints;
 
-    public static volatile long time = 0;
+    public static volatile long time = System.currentTimeMillis();
     public static final int CHECK_RESOLUTION_MILLIS = 100;
     public static final int NOTIFY_CHANGE_RESOLUTION_MILLIS = 1000;
     public static final int TIME_RESOLUTION_MILLIS = 50;
@@ -484,7 +484,7 @@ public abstract class Registry {
     }
 
     private static void ensureLineRegistryCapacity() {
-        if (classCount + 1 >= classNames.length) {
+        if (classCount + 1 > classNames.length) {
             {
                 String[] old = classNames;
                 String[] classNames = new String[old.length * 2];
