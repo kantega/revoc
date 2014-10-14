@@ -312,6 +312,7 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
         private int startTimeLocalVariable;
         private boolean profile;
         private int threadBufferLocal;
+        private boolean constructor;
 
         protected SecondPassInstrumentation(int classId, Map<Integer, Integer> classLineNumbers, Map<Integer, Integer> methodLineNumbers, Map<Integer, Integer> branchPoints, int reportLoad, Map<Integer, Boolean> oneTimeLines, MethodVisitor methodVisitor, int access, String name, String desc) {
             super(ASM5, methodVisitor, access, name, desc);
@@ -381,6 +382,13 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
                 mv.visitVarInsn(ASTORE, threadBufferLocal);
 
             }
+            if (name.equals("<init>")) {
+                constructor = true;
+            } else {
+                startTryBlock();
+            }
+        }
+        private void startTryBlock() {
             before = new Label();
             handler = new Label();
             mv.visitLabel(before);
@@ -508,14 +516,18 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
         }
 
         @Override
-        public void visitMethodInsn(int opcode, String owner, String name, String desc) {
+        public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itf) {
             /*
             if(profile && isWaitMethod(opcode, owner, name, desc)) {
                 nanoTime();
                 mv.visitVarInsn(LSTORE, waitTimeLocalVariable);
 
             } */
-            super.visitMethodInsn(opcode, owner, name, desc);
+            super.visitMethodInsn(opcode, owner, name, desc, itf);
+            if(constructor && name.equals("<init>")) {
+                constructor = false;
+                startTryBlock();
+            }
             /*
             if(profile && isWaitMethod(opcode, owner, name, desc)) {
                 nanoTime();
