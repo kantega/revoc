@@ -55,7 +55,7 @@ public class LambdasTest {
 
         long[] linesVisited = Registry.getCoverageData().getLinesVisited(classId);
         Lines lines = new Lines(classId);
-        lines.once(16);
+        lines.once(26);
     }
 
 }
