@@ -16,103 +16,20 @@
 
 package no.kantega.labs.revoc.web;
 
-import no.kantega.labs.revoc.registry.Registry;
-import org.eclipse.jetty.websocket.WebSocket;
-import org.eclipse.jetty.websocket.WebSocketServlet;
-
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.util.BitSet;
-import java.util.Collections;
-import java.util.Set;
-import java.util.concurrent.CopyOnWriteArraySet;
+import org.eclipse.jetty.websocket.servlet.WebSocketServlet;
+import org.eclipse.jetty.websocket.servlet.WebSocketServletFactory;
 
 /**
  *
  */
-public class RevocWebSocketServlet extends WebSocketServlet implements Registry.ChangeListener  {
+public class RevocWebSocketServlet extends WebSocketServlet {
 
-    private final Set<TimeWebSocket> members = new CopyOnWriteArraySet<TimeWebSocket>();
-
-    @Override
-    public void init() throws ServletException {
-        super.init();
-        Registry.addChangeListener(this);
-    }
 
 
     @Override
-    public void destroy() {
-        Registry.removeChangeListener(this);
-    }
-
-    @Override
-    public void onChange(BitSet bs) {
-        sendMessages(members, bs);
-    }
-
-    private void sendMessages(Set<TimeWebSocket> members, BitSet changed) {
-        StringWriter sw = new StringWriter();
-        new JsonHandler().writeJson(Registry.getCoverageData(), new PrintWriter(sw), changed);
-        String msg = sw.toString();
-
-        for(TimeWebSocket ws : members) {
-            try {
-                ws.sendLatestData(msg);
-            } catch (Exception e) {
-                log("Exception writing message to websocket. Addr: " + ws.getRemoteAddr());
-            }
-        }
-    }
-
-    @Override
-    public WebSocket doWebSocketConnect(HttpServletRequest request, String protocol) {
-        return new TimeWebSocket(request.getRemoteAddr());
+    public void configure(WebSocketServletFactory webSocketServletFactory) {
+        webSocketServletFactory.register(RevocSocket.class);
     }
 
 
-    private class TimeWebSocket implements WebSocket.OnTextMessage {
-        private Connection connection;
-        private final String remoteAddr;
-
-        public TimeWebSocket(String remoteAddr) {
-
-            this.remoteAddr = remoteAddr;
-        }
-
-        @Override
-        public void onOpen(Connection connection) {
-            this.connection = connection;
-            members.add(this);
-            sendMessages(Collections.singleton(this), null);
-        }
-
-        @Override
-        public void onMessage(String data) {
-
-        }
-
-
-        @Override
-        public void onClose(int closeCode, String message) {
-            members.remove(this);
-        }
-
-
-        public void sendLatestData(String data) {
-
-            try {
-                connection.sendMessage(data);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        public String getRemoteAddr() {
-            return remoteAddr;
-        }
-    }
 }

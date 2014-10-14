@@ -11,6 +11,8 @@ import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.handler.HandlerList;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.util.log.Log;
+import org.eclipse.jetty.websocket.server.WebSocketServerFactory;
+import org.eclipse.jetty.websocket.servlet.WebSocketServletFactory;
 
 /**
  *
@@ -27,7 +29,9 @@ public class JettyStarter {
 
         ServletContextHandler ctx = new ServletContextHandler();
         ctx.setContextPath("/ws");
-        ctx.addServlet(RevocWebSocketServlet.class, "/ws");
+        ctx.addServlet(RevocWebSocketServlet.class, "/ws").setInitOrder(1);
+        ctx.setInitParameter(WebSocketServletFactory.class.getName(), WebSocketServletFactory.class.getName());
+        ctx.setInitParameter(WebSocketServerFactory.class.getName(), WebSocketServerFactory.class.getName());
         collection.addHandler(ctx);
 
         collection.addHandler(new WebHandler(new CompondSourceSource(

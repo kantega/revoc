@@ -67,6 +67,11 @@ public class JettyRevocLogger implements org.eclipse.jetty.util.log.Logger {
     }
 
     @Override
+    public void debug(String msg, long value) {
+        log.info("[jetty] [DEBUG] " +msg);
+    }
+
+    @Override
     public org.eclipse.jetty.util.log.Logger getLogger(String name) {
         return this;
     }
