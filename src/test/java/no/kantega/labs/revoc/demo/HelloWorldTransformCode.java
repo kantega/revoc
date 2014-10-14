@@ -50,12 +50,12 @@ public class HelloWorldTransformCode {
 class HelloClassTransformer extends ClassVisitor {
 
     public HelloClassTransformer(ClassVisitor classVisitor) {
-        super(Opcodes.ASM4, classVisitor);
+        super(Opcodes.ASM5, classVisitor);
     }
 
     @Override
     public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
-        return new MethodVisitor(Opcodes.ASM4, super.visitMethod(access, name, desc, signature, exceptions)) {
+        return new MethodVisitor(Opcodes.ASM5, super.visitMethod(access, name, desc, signature, exceptions)) {
             @Override
             public void visitLdcInsn(Object o) {
                 if (o != null && o instanceof String && o.toString().equals("Hello world")) {

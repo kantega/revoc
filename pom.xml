@@ -97,7 +97,7 @@
     </dependencies>
 
     <properties>
-        <asm.version>4.0</asm.version>
+        <asm.version>5.0.3</asm.version>
         <jetty.version>8.1.8.v20121106</jetty.version>
     </properties>
 
@@ -107,8 +107,8 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>2.4</version>
                 <configuration>
-                    <source>1.7</source>
-                    <target>1.7</target>
+                    <source>1.8</source>
+                    <target>1.8</target>
                 </configuration>
             </plugin>
             <plugin>

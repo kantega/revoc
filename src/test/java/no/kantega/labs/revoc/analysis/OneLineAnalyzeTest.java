@@ -27,10 +27,10 @@ public class OneLineAnalyzeTest {
 
         final Map<String, InsnList> methods = new HashMap<String, InsnList>();
 
-        reader.accept(new ClassVisitor(Opcodes.ASM4) {
+        reader.accept(new ClassVisitor(Opcodes.ASM5) {
             @Override
             public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
-                return new MethodNode(Opcodes.ASM4, name, desc , signature, exceptions) {
+                return new MethodNode(Opcodes.ASM5, access, name, desc , signature, exceptions) {
                     @Override
                     public void visitEnd() {
                         methods.put(name, instructions);

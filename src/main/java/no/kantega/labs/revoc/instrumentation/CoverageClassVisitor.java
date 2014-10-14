@@ -72,7 +72,7 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
 
     }
     public CoverageClassVisitor(ClassVisitor classVisitor, int classId) {
-        super(ASM4, classVisitor);
+        super(ASM5, classVisitor);
         this.classId = classId;
     }
 
@@ -102,7 +102,7 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
     @Override
     public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
         final MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
-        if ((access & ACC_SYNTHETIC) != 0) {
+        if (!name.startsWith("lambda$") && (access & ACC_SYNTHETIC) != 0) {
             return mv;
         }
 
@@ -181,7 +181,7 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
         private final MethodVisitor mv;
 
         public FirstPassAnalysis(MethodVisitor mv, int access, String name, String desc, String signature, String[] exceptions) {
-            super(access, name, desc, signature, exceptions);
+            super(Opcodes.ASM5, access, name, desc, signature, exceptions);
             this.mv = mv;
         }
 
@@ -189,7 +189,7 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
         public void visitEnd() {
 
             if(supressedMethodNames.contains(name) || (access & Opcodes.ACC_ABSTRACT) != 0 ) {
-                accept(new MethodVisitor(ASM4, mv) {
+                accept(new MethodVisitor(ASM5, mv) {
                 });
             } else {
 
@@ -314,7 +314,7 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
         private int threadBufferLocal;
 
         protected SecondPassInstrumentation(int classId, Map<Integer, Integer> classLineNumbers, Map<Integer, Integer> methodLineNumbers, Map<Integer, Integer> branchPoints, int reportLoad, Map<Integer, Boolean> oneTimeLines, MethodVisitor methodVisitor, int access, String name, String desc) {
-            super(ASM4, methodVisitor, access, name, desc);
+            super(ASM5, methodVisitor, access, name, desc);
             this.classId = classId;
             this.classLineNumbers = classLineNumbers;
             this.methodLineNumbers = methodLineNumbers;

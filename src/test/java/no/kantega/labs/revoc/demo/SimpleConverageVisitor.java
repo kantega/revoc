@@ -31,7 +31,7 @@ public class SimpleConverageVisitor extends MethodVisitor implements Opcodes {
     private final Map<Integer, Integer> classLineNumbers;
 
     public SimpleConverageVisitor(int classId, Map<Integer, Integer> classLineNumbers, MethodVisitor methodVisitor) {
-        super(ASM4, methodVisitor);
+        super(ASM5, methodVisitor);
         this.classId = classId;
         this.classLineNumbers = classLineNumbers;
     }
