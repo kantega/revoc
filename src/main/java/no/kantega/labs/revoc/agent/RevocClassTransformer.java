@@ -125,7 +125,7 @@ public class RevocClassTransformer implements ClassFileTransformer {
     }
 
     public static boolean shouldFilter(ClassLoader classLoader, String className, String[] packages) {
-        if (classLoader == null) {
+        if (classLoader == null || className == null) {
             return false;
         }
         if (className.startsWith("no/kantega/labs/revoc/")) {
