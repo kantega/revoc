@@ -63,11 +63,13 @@ public final class ThreadLocalBuffer implements Runnable {
     }
 
     public final void visitLine(int cursor, int numvisits, int lineIndex, long methodId) {
-        if(cursor != -1 && numvisits != 0)  {
-            lineVisits[cursor + lineIndex] += numvisits;
-        } else {
-            flushLineVisits(numvisits, methodId, lineIndex);
-            flushLineTime(methodId, lineIndex, Registry.time);
+        if(numvisits != 0) {
+            if (cursor != -1) {
+                lineVisits[cursor + lineIndex] += numvisits;
+            } else {
+                flushLineVisits(numvisits, methodId, lineIndex);
+                flushLineTime(methodId, lineIndex, Registry.time);
+            }
         }
     }
 
@@ -309,6 +311,7 @@ public final class ThreadLocalBuffer implements Runnable {
     }
 
     public final void popStack(long methodId) {
+
 
         if (isStackTop(methodId)) {
             flushStackTop();
