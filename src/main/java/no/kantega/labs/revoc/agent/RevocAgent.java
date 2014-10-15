@@ -18,6 +18,7 @@ package no.kantega.labs.revoc.agent;
 
 import no.kantega.labs.revoc.logging.LogFactory;
 import no.kantega.labs.revoc.logging.Logger;
+import no.kantega.labs.revoc.web.JettyStarter;
 
 import java.lang.instrument.Instrumentation;
 import java.lang.instrument.UnmodifiableClassException;

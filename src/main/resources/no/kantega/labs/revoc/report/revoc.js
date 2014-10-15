@@ -62,7 +62,7 @@ window.addEventListener("load", function() {
                 console.log("Browser doesn't support WebSocket, Falling back to Ajax")
                 return false;
             }
-            var location = "ws://" + window.location.hostname + (window.location.port != 80 ? ":" + window.location.port : "") +window.location.pathname+ "ws/ws";
+            var location = "ws://" + window.location.hostname + (window.location.port != 80 ? ":" + window.location.port : "") +window.location.pathname+ "ws";
             console.log("Using URL: " + location)
             _ws = new WebSocket(location);
             _ws.onerror = this._onerror;

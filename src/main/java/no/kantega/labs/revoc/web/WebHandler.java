@@ -33,23 +33,12 @@ import java.io.*;
  *
  */
 public class WebHandler extends AbstractHandler {
-    private final SourceSource sourceSource;
     private final String[] packages;
     private File resources;
 
-    public WebHandler(SourceSource sourceSource, String[] packages) {
-        this.sourceSource = sourceSource;
+    public WebHandler(String[] packages) {
         this.packages = packages;
-        String src = System.getProperty("revoc.dev");
-        if(src != null) {
-            File srcFile = new File(src);
-            if(srcFile.exists()) {
-                File resources = new File(src, "src/main/resources/no/kantega/labs/revoc/report");
-                if(resources.exists()) {
-                    this.resources = resources;
-                }
-            }
-        }
+
     }
 
     public void handle(String target, Request baseRequest, HttpServletRequest request, final HttpServletResponse response) throws IOException, ServletException {
@@ -68,52 +57,6 @@ public class WebHandler extends AbstractHandler {
                     response.sendRedirect(".");
                     return;
                 }
-            }else if (request.getRequestURI() != null && request.getRequestURI().startsWith("/sources/")) {
-                String className = request.getRequestURI().substring("/sources/".length());
-                if(!isPackageMatch(className)) {
-                    response.sendError(HttpServletResponse.SC_NOT_FOUND);
-                    return;
-                }
-                ClassLoader loader =  Registry.getClassLoader(Integer.parseInt(request.getParameter("classLoader")));
-                String[] source = sourceSource.getSource(className, loader);
-                if(source == null) {
-                    response.sendError(HttpServletResponse.SC_NOT_FOUND);
-                } else {
-                    response.setContentType("text/plain");
-                    for(String line : source) {
-                        response.getWriter().println(line);
-                    }
-                }
-                return;
-
-            }else if ("/json".equals(request.getRequestURI())) {
-                response.setContentType("application/json");
-                new JsonHandler().writeJson(Registry.getCoverageData(), response.getWriter());
-                return;
-            }else if ("/".equals(request.getRequestURI())) {
-                response.setContentType("text/html");
-                IOUtils.copy(getResourceStream("revoc.html"), response.getOutputStream());
-                return;
-            }else if ("/profiler.json".equals(request.getRequestURI())) {
-                response.setContentType("application/json");
-                new JsonHandler().writeCallTreeJson(Registry.getFrames(), response.getWriter());
-                return;
-            }else if ("/profiler".equals(request.getRequestURI())) {
-                response.setContentType("text/html");
-                IOUtils.copy(getResourceStream("profiler.html"), response.getOutputStream());
-                return;
-            }else if ("/revoc.css".equals(request.getRequestURI())) {
-                response.setContentType("text/css");
-                IOUtils.copy(getResourceStream("revoc.css"), response.getOutputStream());
-                return;
-            }else if ("/profiler.css".equals(request.getRequestURI())) {
-                response.setContentType("text/css");
-                IOUtils.copy(getResourceStream("profiler.css"), response.getOutputStream());
-                return;
-            }else if ("/revoc.js".equals(request.getRequestURI())) {
-                response.setContentType("text/javascript");
-                IOUtils.copy(getResourceStream("revoc.js"), response.getOutputStream());
-                return;
             } else {
                 response.sendError(HttpServletResponse.SC_NOT_FOUND);
                 return;
@@ -125,28 +68,7 @@ public class WebHandler extends AbstractHandler {
 
     }
 
-    private boolean isPackageMatch(String className) {
-        for (String p : packages) {
-            if(className.startsWith(p)) {
-                return true;
-            }
-        }
-        return false;
-    }
 
-    private InputStream getResourceStream(String resourcePath) {
-        if(resources != null) {
-            File source = new File(resources, resourcePath);
-            if(source.exists()) {
-                try {
-                    return new FileInputStream(source);
-                } catch (FileNotFoundException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        }
-        return HtmlReport.class.getResourceAsStream(resourcePath);
-    }
 
     class ShutdownThread extends Thread {
         private final Server server;
