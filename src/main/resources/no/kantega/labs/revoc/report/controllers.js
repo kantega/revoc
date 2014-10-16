@@ -4,6 +4,8 @@ angular.module("revoc")
         function ($scope, $http, websocket, classesParser) {
 
 
+            $scope.dataVersion = 0;
+
             function newData(newData) {
                 $scope.$apply(function () {
 
@@ -18,6 +20,8 @@ angular.module("revoc")
                     }
 
                     $scope.data = data;
+                    $scope.dataVersion++;
+
 
                     $scope.classes = classesParser($scope.data.classes);
                     $scope.loaders = parseLoaders($scope.data.loaders);
@@ -25,8 +29,6 @@ angular.module("revoc")
                         updateSourceLines($scope.selectedSource.lines, $scope.data.classes[$scope.selectedSource.class.id]);
                     }
                 })
-
-                console.log("New data: " + $scope.data)
             }
 
             function parseLoaders(loaders) {

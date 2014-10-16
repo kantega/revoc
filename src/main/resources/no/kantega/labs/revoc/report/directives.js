@@ -34,11 +34,23 @@ angular.module("revoc")
             angular.element(canvas).on("mouseout", canvasout);
             angular.element(canvas).on("click", canvasclicked);
 
+            var redraw;
+
             scope.$watch("revocPixels", function(value) {
                 if(value) {
                     console.log("Data changed to: " + value)
                     data = value;
+                }
+            });
+
+            scope.$watch("revocDataVersion", function(value) {
+                if(value) {
+                    console.log("Data version changed to: " + value)
+                    if(redraw) {
+                        clearTimeout(redraw);
+                    }
                     drawData();
+                    redraw = setTimeout(drawData, 11000);
                 }
             });
 
@@ -231,7 +243,8 @@ angular.module("revoc")
         return {
             link: link,
             scope: {
-                revocPixels: "=revocPixels",
+                revocPixels: "=",
+                revocDataVersion: "=",
                 onPixelHover: "&",
                 onPixelClick: "&"
 
