@@ -1,0 +1,230 @@
+/*
+ * Copyright 2012 Kantega AS
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+body {
+    font-family:sans-serif;
+    margin: 0;
+}
+pre {
+    margin:0;
+    white-space: pre-wrap;
+}
+
+td.linenumber, td.numvisits, td.conditional, td.lastvisit {
+    text-align: right;
+    vertical-align: top;
+    background-color: #F0F0F0;
+    border-right: 1px solid #DCDCDC;
+    font-size:smaller;
+}
+td.lastvisit {
+    color: darkgray;
+}
+
+tr.visited.branched td.conditional {
+    background-color: #80FF80;
+}
+
+tr.nonvisited td.numvisits, tr.nonvisited td.conditional, tr.nonvisited td.lastvisit, tr.nonvisited td.sourceline {
+    background-color: #FF9595;
+}
+
+tr.branched.singlebranched td.conditional, tr.singlebranched td.sourceline  {
+    background-color: #ffff99;
+    border-right: 1px solid #ffff99;
+}
+
+td.conditional {
+    font-size: x-small;
+}
+
+
+tr.nonvisited td.numvisits, tr.nonvisited td.conditional, tr.nonvisited td.lastvisit {
+    border-right: 1px solid #FF9595;
+}
+
+tr.visited td.numvisits, tr.nonbranched td.numvisits  {
+    background-color: #80FF80;
+}
+
+table {
+    border-spacing:0;
+}
+
+table td {
+    padding: 0.3em;
+}
+
+#title {
+    font-weight:bold;
+}
+
+#pixels {
+    position: fixed;
+    right: 20px;
+    top: 35px;
+    height: 100%;
+    display:none;
+    text-align: right;
+}
+
+#pixelsheading {
+    display: none;
+    float:right;
+    cursor: pointer;
+    margin-right: 2em;
+}
+
+#pixels.hidden #smallCanvas, #pixels.hidden #canvasscroll {
+    display: none;
+}
+
+#smallCanvas {
+    float:left;
+    border: 3px solid gray;
+    opacity: 0.80;
+    cursor: pointer;
+    margin-right:20px;
+}
+
+
+#canvasscroll {
+    float:right;
+    max-width: 400px;
+    max-height: 90%;
+    overflow: hidden;
+}
+
+#canvas {
+    cursor:pointer;
+    opacity: 0.80;
+}
+
+#footer {
+    display: none;
+    background: rgb(0, 0, 0);
+    background: rgba(0, 0, 0, 0.7);
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    color: white;
+    padding: 1em;
+}
+
+#coverage {
+    width: 3em;
+    display: inline-block;
+    text-align: right;
+    margin-right: 1em;
+}
+
+#sourceinfo {
+    position: fixed;
+    width:100%;
+    height: 20px;
+    border-bottom: 1px solid black;
+    background-color:rgba(240, 240, 240, 0.85);
+    padding: 5px;
+}
+
+#infostrut {
+    height: 31px;
+    background-color:rgba(240, 240, 240, 1.0);
+}
+#sourcetitle {
+    font-weight: bold;
+}
+
+#overview {
+    padding: 1em;
+}
+
+#overview table {
+}
+
+#overview td {
+    text-align: right;
+    border: 1px solid #d3d3d3;
+    border: 1px solid #d3d3d3;
+    border-top:none;
+    border-left:none;
+    padding: 0.3em;
+    width: 6em;
+}
+
+#overview div.package {
+    font-size: 80%;
+    color:gray;
+}
+#overview div.className {
+    padding-top: 0.2em;
+    padding-left: 0.2em;
+
+}
+
+#overview td.label {
+    text-align: left;
+    border-left: 1px solid #d3d3d3;
+}
+
+#overview tr.total td {
+    border-top: 1px solid #d3d3d3;
+}
+#overview tr.total {
+    font-weight: bold;
+}
+
+#overview tr.class td {
+    cursor: pointer;
+}
+
+#overview tr.odd{
+    background-color: #e9e9e9;
+}
+
+#overview tr.class:hover td  {
+    background-color: #b0c4de;
+}
+
+tr.sortable th {
+    cursor: pointer;
+}
+
+tr.sortable th.selected {
+    background-color: #b0c4de;
+}
+
+tr.sortable th:hover {
+    background-color: #d3d3d3;
+}
+
+tr.sortable th.selected:hover {
+    background-color: #b0c4de;
+}
+
+.fullscreen {
+    display: none;
+}
+
+div.filters {
+    margin: 0.5em;
+}
+#filter {
+    width: 30em;
+}
+.ng-cloak {
+    display: none;
+}
