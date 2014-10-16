@@ -34,7 +34,15 @@ angular.module("revoc")
             angular.element(canvas).on("mouseout", canvasout);
             angular.element(canvas).on("click", canvasclicked);
 
+            angular.element(small).on("mousedown", smallCanvasDown);
+            angular.element(small).on("mouseup", smallCanvasUp);
+            angular.element(small).on("mouseout", function() {smallCanvasDragging=false});
+            angular.element(small).on("mousemove", smallCanvasMove);
+
+
             var redraw;
+
+            var smallCanvasDragging = false;
 
             scope.$watch("revocPixels", function(value) {
                 if(value) {
@@ -97,6 +105,36 @@ angular.module("revoc")
                 }
 
                 prevLine = clsLine
+            }
+
+            function smallCanvasPaint(evt) {
+                var cpos = getElemPos(small);
+
+                var mx = evt.clientX - cpos[0] + small.scrollLeft;
+
+                var my = evt.clientY - cpos[1] + small.scrollTop;
+
+                scroll.scrollLeft = mx*10 -small.offsetWidth/2;
+                scroll.scrollTop = my*10 -small.offsetHeight/2;
+                drawSmall();
+            }
+
+            function smallCanvasMove(evt) {
+                if(smallCanvasDragging) {
+                    evt.preventDefault();
+                    smallCanvasPaint(evt);
+                }
+
+            }
+            function smallCanvasDown(evt) {
+                evt.preventDefault();
+                smallCanvasDragging = true;
+                smallCanvasPaint(evt);
+            }
+            function smallCanvasUp(evt) {
+                evt.preventDefault();
+                smallCanvasDragging = false;
+                smallCanvasPaint(evt);
             }
 
             function drawData() {
