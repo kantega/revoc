@@ -71,17 +71,17 @@
     </div>
     <table>
         <tr class="sortable">
-            <th id="sort-name">Name</th>
-            <th id="sort-run">Run</th>
-            <th id="sort-unrun">Not run</th>
-            <th id="sort-lines">Lines</th>
-            <th id="sort-cover">Cover</th>
-            <th id="sort-sum">Sum</th>
-            <th id="sort-max">Max</th>
+            <th id="sort-name" ng-click="toggleSort('index')">Name</th>
+            <th id="sort-run" ng-click="toggleSort('run')">Run</th>
+            <th id="sort-unrun" ng-click="toggleSort('notrun')">Not run</th>
+            <th id="sort-lines" ng-click="toggleSort('lines')">Lines</th>
+            <th id="sort-cover" ng-click="toggleSort('coverage')">Cover</th>
+            <th id="sort-sum" ng-click="toggleSort('sum')">Sum</th>
+            <th id="sort-max" ng-click="toggleSort('max')">Max</th>
         </tr>
-        <tr class="total">
+        <tr class="total" ng-init="total=0">
             <td class="label" id="totallabel">
-                Total
+                Total {{filteredClasses.length}}
             </td>
             <td class="total-run">
                 {{classes.total.run}}
@@ -102,7 +102,7 @@
                 {{classes.total.max}}
             </td>
         </tr>
-        <tr ng-repeat="class in (classes.classes |filter:filterClass|byClassLoader:selectedClassLoader)"
+        <tr ng-repeat="class in filteredClasses = (classes.classes |filter:filterClass|byClassLoader:selectedClassLoader|orderBy:predicate:reverse)"
             class="class"
             ng-class-odd="'odd'"
             ng-click="showSource(class)">
@@ -113,7 +113,7 @@
             <td>{{class.run}}</td>
             <td>{{class.notrun}}</td>
             <td>{{class.lines}}</td>
-            <td>{{class.coverage}}</td>
+            <td>{{class.coverage}}%</td>
             <td>{{class.sum}}</td>
             <td>{{class.max}}</td>
         </tr>

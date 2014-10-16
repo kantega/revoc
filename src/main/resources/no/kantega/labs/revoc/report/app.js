@@ -138,6 +138,7 @@ angular.module("revoc", [])
             var totalMax = 0;
             var totalSumRun = 0;
 
+            var i = 0;
             for (var c in data) {
                 var numLines = 0;
                 var numLinesRun = 0;
@@ -163,6 +164,7 @@ angular.module("revoc", [])
                 }
                 totalNumLinesNotRun += (numLines - numLinesRun);
                 array.push({
+                    index: i++,
                     id: c,
                     classLoaderId: c.substr(0, c.indexOf("+")),
                     className: c.substr(c.indexOf("+")+1),

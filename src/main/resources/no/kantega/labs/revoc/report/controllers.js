@@ -8,6 +8,8 @@ angular.module("revoc")
 
             $scope.now = new Date().getTime();
 
+            $scope.predicate = "index";
+
             $interval(function() {
                 $scope.now = new Date().getTime()
             }, 1000);
@@ -37,6 +39,14 @@ angular.module("revoc")
                 })
             }
 
+            $scope.toggleSort = function(predicate) {
+                if($scope.predicate === predicate) {
+                    $scope.reverse = !$scope.reverse;
+                } else {
+                    $scope.predicate = predicate;
+                    $scope.reverse= true;
+                }
+            }
             function parseLoaders(loaders) {
                 var l = [];
                 for (var i = 0; i < loaders.length; i+=2) {
