@@ -25,7 +25,7 @@
 
 <body ng-controller="RevocController">
 
-<div id="sourceinfo">
+<div class="sourceinfo">
     <span ng-hide="data">Loading...</span>
     <div class="togglePixels" ng-click="showNavigation=!showNavigation" ng-init="showNavigation=true">
         <span ng-show="showNavigation">Hide navigation</span>
@@ -33,17 +33,17 @@
     </div>
     <div ng-cloak="data" class="ng-cloak">
         <span ng-show="selectedSource">
-            <span id="sourcetitle">{{selectedSource.class.id|className}}</span>
-            <span id="sourcecoverage">{{getCoverage(selectedSource.class.id)}}%</span>
-            <a href="#" ng-click="selectedSource=null">Show all</a></span>
+            <span class="sourcetitle">{{selectedSource.class.id|className}}</span>
+            <span>{{getCoverage(selectedSource.class.id)}}%</span>
+            <a href ng-click="selectedSource=null">Show all</a></span>
     </div>
 </div>
-<div id="infostrut"></div>
+<div class="infostrut"></div>
 
 <div ng-cloak="data" class="ng-cloak">
 
 
-    <div id="source" ng-show="selectedSource">
+    <div ng-show="selectedSource">
 
         <table>
             <tr ng-repeat="line in selectedSource.lines" ng-class="{'visited': line.numVisits > 0, 'nonvisited': line.numVisits == 0}" id="line-{{line.lineNumber}}">
@@ -63,10 +63,10 @@
         </table>
     </div>
 
-    <div id="overview" ng-hide="selectedSource">
+    <div class="overview" ng-hide="selectedSource">
 
         <div class="filters">
-            Filter: <input ng-model="filterClass.simpleName" id="filter">
+            Filter: <input ng-model="filterClass.simpleName" class="filter">
             <select ng-options="loader as loader.name for loader in loaders" ng-model="selectedClassLoader">
                 <option value="">Show all classloaders</option>
             </select>
@@ -77,26 +77,26 @@
                     {{p.title}}
                 </th>
             </tr>
-            <tr class="total" ng-init="total=0">
+            <tr class="total">
                 <td class="label" id="totallabel">
                     Total {{filteredClasses.length}}
                 </td>
-                <td class="total-run">
+                <td>
                     {{classes.total.run}}
                 </td>
-                <td class="total-unrun">
+                <td>
                     {{classes.total.notrun}}
                 </td>
-                <td class="total-lines">
+                <td>
                     {{classes.total.lines}}
                 </td>
-                <td class="total-cover">
+                <td>
                     {{classes.total.coverage}}%
                 </td>
-                <td class="total-sum">
+                <td>
                     {{classes.total.sum}}
                 </td>
-                <td class="total-max">
+                <td>
                     {{classes.total.max}}
                 </td>
             </tr>
@@ -119,12 +119,12 @@
     </div>
 
 
-    <div id="pixels"
+    <div class="pixels"
          revoc-pixels="data.classes"
          revoc-data-version="dataVersion"
          on-pixel-hover="activeClass = pixel"
          on-pixel-click="showSource(pixel)"
-         ng-show="showNavigation">
+         ng-show="data && showNavigation">
 
     </div>
 
@@ -132,7 +132,6 @@
     <div ng-show="activeClass" class="footer">
         <span class="coverage">{{getCoverage(activeClass.id)}}%</span>
         <span class="title">{{activeClass.className | className}}:{{activeClass.lineId+1}}</span>
-        <span id="time"></span>
     </div>
 
 </div>
