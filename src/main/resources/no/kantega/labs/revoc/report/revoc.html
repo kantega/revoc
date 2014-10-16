@@ -16,83 +16,131 @@
   -->
 
 
-<html>
+<html ng-app="revoc">
 
 <head>
     <title>Revoc</title>
     <link href="assets/revoc.css" rel="stylesheet">
 </head>
 
-<body>
+<body ng-controller="RevocController">
 
 <div id="sourceinfo">
-    <span id="loading">Loading...</span>
-    <div id="pixelsheading">Hide navigation</div>
-    <span id="sourcetitle"></span> <span id="sourcecoverage"></span> <a href="#" id="showclasses">Show all</a>
+    <span ng-hide="data">Loading...</span>
+    <div class="togglePixels" ng-click="showNavigation=!showNavigation" ng-init="showNavigation=true">
+        <span ng-show="showNavigation">Hide navigation</span>
+        <span ng-hide="showNavigation">Show navigation</span>
+    </div>
+    <div ng-cloak="data" class="ng-cloak">
+        <span ng-show="selectedSource">
+            <span id="sourcetitle">{{selectedSource.class.id|className}}</span>
+            <span id="sourcecoverage">{{getCoverage(selectedSource.class.id)}}%</span>
+            <a href="#" ng-click="selectedSource=null">Show all</a></span>
+    </div>
 </div>
 <div id="infostrut"></div>
 
+<div ng-cloak="data" class="ng-cloak">
 
-<div id="source" class="fullscreen"></div>
-<div id="overview" class="fullscreen">
 
-    <div class="filters">
-        Filter: <input id="filter">
+    <div id="source" ng-show="selectedSource">
 
-        <select id="classLoaderSelector">
-            <option value="-1">Show all classloaders</option>
-        </select>
+        <table>
+            <tr ng-repeat="line in selectedSource.lines" ng-class="{'visited': line.numVisits > 0, 'nonvisited': line.numVisits == 0}" id="line-{{line.lineNumber}}">
+                <td class="linenumber">
+                    {{line.lineNumber}}
+                </td>
+                <td class="numvisits">
+                    {{line.numVisits}}
+                </td>
+                <td class="lastvisit" ng-class="{'recent': (line.lastVisit && (now - line.lastVisit) < 10000)}">
+                    {{line.lastVisit | durationSince:now}}
+                </td>
+                <td class="sourceline">
+                    <pre>{{line.source}}</pre>
+                </td>
+            </tr>
+        </table>
     </div>
-    <table>
-        <tr class="sortable">
-            <th id="sort-name">Name</th>
-            <th id="sort-run">Run</th>
-            <th id="sort-unrun">Not run</th>
-            <th id="sort-lines">Lines</th>
-            <th id="sort-cover">Cover</th>
-            <th id="sort-sum">Sum</th>
-            <th id="sort-max">Max</th>
-        </tr>
-        <tr class="total">
-            <td class="label" id="totallabel">
-                Total
-            </td>
-            <td class="total-run">
 
-            </td>
-            <td class="total-unrun">
+    <div id="overview" ng-hide="selectedSource">
 
-            </td>
-            <td class="total-lines">
-
-            </td>
-            <td class="total-cover">
-
-            </td>
-            <td class="total-sum">
-
-            </td>
-            <td class="total-max">
-
-            </td>
-        </tr>
-    </table>
-</div>
-
-<div id="pixels">
-    <canvas id="smallCanvas"></canvas>
-    <div id="canvasscroll">
-        <canvas id="canvas" onm></canvas>
+        <div class="filters">
+            Filter: <input ng-model="filterClass.simpleName" id="filter">
+            <select ng-options="loader as loader.name for loader in loaders" ng-model="selectedClassLoader">
+                <option value="">Show all classloaders</option>
+            </select>
+        </div>
+        <table>
+            <tr class="sortable">
+                <th ng-repeat="p in predicates" ng-click="toggleSort(p.predicate)" ng-class="{'selected': p.predicate === predicate}">
+                    {{p.title}}
+                </th>
+            </tr>
+            <tr class="total" ng-init="total=0">
+                <td class="label" id="totallabel">
+                    Total {{filteredClasses.length}}
+                </td>
+                <td class="total-run">
+                    {{classes.total.run}}
+                </td>
+                <td class="total-unrun">
+                    {{classes.total.notrun}}
+                </td>
+                <td class="total-lines">
+                    {{classes.total.lines}}
+                </td>
+                <td class="total-cover">
+                    {{classes.total.coverage}}%
+                </td>
+                <td class="total-sum">
+                    {{classes.total.sum}}
+                </td>
+                <td class="total-max">
+                    {{classes.total.max}}
+                </td>
+            </tr>
+            <tr ng-repeat="class in filteredClasses = (classes.classes |filter:filterClass|byClassLoader:selectedClassLoader|orderBy:predicate:reverse)"
+                class="class"
+                ng-class-odd="'odd'"
+                ng-click="showSource(class)">
+                <td class="label">
+                    <div class="package">{{class.package}}</div>
+                    <div class="className">{{class.simpleName}}</div>
+                </td>
+                <td>{{class.run}}</td>
+                <td>{{class.notrun}}</td>
+                <td>{{class.lines}}</td>
+                <td>{{class.coverage}}%</td>
+                <td>{{class.sum}}</td>
+                <td>{{class.max}}</td>
+            </tr>
+        </table>
     </div>
-</div>
 
 
-<div id="footer">
-    <span id="coverage"></span>
-    <span id="title"></span>
-    <span id="time"></span>
+    <div id="pixels"
+         revoc-pixels="data.classes"
+         revoc-data-version="dataVersion"
+         on-pixel-hover="activeClass = pixel"
+         on-pixel-click="showSource(pixel)"
+         ng-show="showNavigation">
+
+    </div>
+
+
+    <div ng-show="activeClass" class="footer">
+        <span class="coverage">{{getCoverage(activeClass.id)}}%</span>
+        <span class="title">{{activeClass.className | className}}:{{activeClass.lineId+1}}</span>
+        <span id="time"></span>
+    </div>
+
 </div>
-<script type="text/javascript" src="assets/revoc.js"></script>
+
+<script type="text/javascript" src="webjars/angularjs/1.3.0/angular.js"></script>
+<script type="text/javascript" src="assets/app.js"></script>
+<script type="text/javascript" src="assets/directives.js"></script>
+<script type="text/javascript" src="assets/controllers.js"></script>
 
 
 </body>
