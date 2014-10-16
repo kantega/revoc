@@ -53,7 +53,7 @@
             <td class="numvisits">
                 {{line.numVisits}}
             </td>
-            <td class="lastvisit">
+            <td class="lastvisit" ng-class="{'recent': (line.lastVisit && (now - line.lastVisit) < 10000)}">
                 {{line.lastVisit | durationSince:now}}
             </td>
             <td class="sourceline">

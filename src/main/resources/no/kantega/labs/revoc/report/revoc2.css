@@ -33,6 +33,10 @@ td.linenumber, td.numvisits, td.conditional, td.lastvisit {
 td.lastvisit {
     color: darkgray;
 }
+td.lastvisit.recent {
+    background-color: lightblue;
+    color:black;
+}
 
 tr.visited.branched td.conditional {
     background-color: #80FF80;
