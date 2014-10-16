@@ -33,7 +33,9 @@
     </div>
     <div ng-cloak="data" class="ng-cloak">
         <span ng-show="selectedSource">
-            <span id="sourcetitle">{{selectedSource.class.id|className}}</span> <span id="sourcecoverage"></span> <a href="#" ng-click="selectedSource=null">Show all</a></span>
+            <span id="sourcetitle">{{selectedSource.class.id|className}}</span>
+            <span id="sourcecoverage">{{getCoverage(selectedSource.class.id)}}%</span>
+            <a href="#" ng-click="selectedSource=null">Show all</a></span>
     </div>
 </div>
 <div id="infostrut"></div>
