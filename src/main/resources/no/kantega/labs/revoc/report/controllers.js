@@ -4,11 +4,23 @@ angular.module("revoc")
         function ($scope, $http, websocket, classesParser) {
 
 
-            function newData(data) {
+            function newData(newData) {
                 $scope.$apply(function () {
+
+                    var data = $scope.data;
+
+                    if(data) {
+                        for(var id in newData.classes) {
+                            data.classes[id] = newData.classes[id];
+                        }
+                    } else {
+                        data = newData;
+                    }
+
                     $scope.data = data;
-                    $scope.classes = classesParser(data.classes);
-                    $scope.loaders = parseLoaders(data.loaders);
+
+                    $scope.classes = classesParser($scope.data.classes);
+                    $scope.loaders = parseLoaders($scope.data.loaders);
                     if($scope.selectedSource) {
                         updateSourceLines($scope.selectedSource.lines, $scope.data.classes[$scope.selectedSource.class.id]);
                     }
@@ -39,6 +51,34 @@ angular.module("revoc")
                 return lines;
             }
 
+            $scope.getCoverage = function(id) {
+                if(!$scope.data || !$scope.data.classes) {
+                    return;
+                }
+                var data = $scope.data.classes;
+                if(id && data && data[id]) {
+                    var numLines = 0;
+                    var covered = 0;
+                    var lines = data[id][1];
+                    var visits = data[id][2];
+                    for(var l =0; l <  lines.length; l++) {
+                        var runs = visits[l];
+                        if(runs>=0) {
+                            numLines++;
+                        }
+                        if(runs>=1) {
+                            covered++;
+                        }
+                    }
+                    if(numLines == 0) {
+                        return 100;
+                    } else {
+                        return Math.floor(100*covered/numLines);
+                    }
+                } else {
+                    return 0;
+                }
+            }
             $scope.showSource = function(clazz) {
                 $http({
                     method:"GET",
@@ -65,6 +105,23 @@ angular.module("revoc")
                         class: clazz,
                         lines: lines
                     };
+                    if(clazz.lineId) {
+                        console.log("Should scroll")
+                        setTimeout(function() {
+                            var e = document.getElementById("line-" + (clazz.lineId + 1));
+                            if (e) {
+                                e.scrollIntoView();
+                                while(e) {
+                                    console.log("Scrolltop of " + e + " is " + e.scrollTop)
+                                    e = e.parentNode;
+                                }
+                                document.documentElement.scrollTop -= (80);
+                                document.documentElement.scrollLeft = 0;
+                            }
+
+
+                        }, 100)
+                    }
                 }, function() {
                     alert("Source not found")
                 })
@@ -84,6 +141,5 @@ angular.module("revoc")
 
             websocket.addListener(newData);
 
-            $scope.data = "kj"
             websocket.join();
         }]);

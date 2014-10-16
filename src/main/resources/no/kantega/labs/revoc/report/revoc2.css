@@ -68,7 +68,7 @@ table td {
     padding: 0.3em;
 }
 
-#title {
+.title {
     font-weight:bold;
 }
 
@@ -77,12 +77,10 @@ table td {
     right: 20px;
     top: 35px;
     height: 100%;
-    display:none;
     text-align: right;
 }
 
-#pixelsheading {
-    display: none;
+.togglePixels {
     float:right;
     cursor: pointer;
     margin-right: 2em;
@@ -92,7 +90,7 @@ table td {
     display: none;
 }
 
-#smallCanvas {
+.smallCanvas {
     float:left;
     border: 3px solid gray;
     opacity: 0.80;
@@ -101,20 +99,19 @@ table td {
 }
 
 
-#canvasscroll {
+.canvasscroll {
     float:right;
     max-width: 400px;
     max-height: 90%;
     overflow: hidden;
 }
 
-#canvas {
+.canvas {
     cursor:pointer;
     opacity: 0.80;
 }
 
-#footer {
-    display: none;
+.footer {
     background: rgb(0, 0, 0);
     background: rgba(0, 0, 0, 0.7);
     position: fixed;
@@ -124,7 +121,7 @@ table td {
     padding: 1em;
 }
 
-#coverage {
+.coverage {
     width: 3em;
     display: inline-block;
     text-align: right;
