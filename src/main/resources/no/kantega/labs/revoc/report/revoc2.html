@@ -52,7 +52,7 @@
                 {{line.numVisits}}
             </td>
             <td class="lastvisit">
-                {{line.lastVisit | durationSince}}
+                {{line.lastVisit | durationSince:now}}
             </td>
             <td class="sourceline">
                 <pre>{{line.source}}</pre>

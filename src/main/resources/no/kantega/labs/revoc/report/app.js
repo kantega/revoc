@@ -42,11 +42,10 @@ angular.module("revoc", [])
         }
     })
     .filter("durationSince", function () {
-        return function (t) {
+        return function (t, now) {
             if(!t) {
                 return undefined;
             }
-            var now = new Date().getTime();
             var tt = ""
             var ss = parseInt((now - t) / 1000);
             if (ss <= 60) {

@@ -1,10 +1,16 @@
 angular.module("revoc")
-    .controller("RevocController", ["$scope", "$http", "websocket", "classesParser",
+    .controller("RevocController", ["$scope", "$http", "$interval", "websocket", "classesParser",
 
-        function ($scope, $http, websocket, classesParser) {
+        function ($scope, $http, $interval, websocket, classesParser) {
 
 
             $scope.dataVersion = 0;
+
+            $scope.now = new Date().getTime();
+
+            $interval(function() {
+                $scope.now = new Date().getTime()
+            }, 1000);
 
             function newData(newData) {
                 $scope.$apply(function () {
@@ -48,7 +54,7 @@ angular.module("revoc")
                     var lineNum = data[1][i];
                     var numVisits = data[2][i];
                     lines[lineNum].numVisits = data[2][i];
-                    lines[lineNum].lastVisit = numVisits > 0 ? tref + data[4][i] : undefined;
+                    lines[lineNum].lastVisit = numVisits > 0 ? tref - data[4][i] : undefined;
                 }
                 return lines;
             }

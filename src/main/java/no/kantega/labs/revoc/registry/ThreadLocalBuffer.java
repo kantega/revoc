@@ -63,14 +63,18 @@ public final class ThreadLocalBuffer implements Runnable {
     }
 
     public final void visitLine(int cursor, int numvisits, int lineIndex, long methodId) {
-        if(numvisits != 0) {
-            if (cursor != -1) {
+
+        if (cursor != -1) {
+            if(numvisits != 0) {
                 lineVisits[cursor + lineIndex] += numvisits;
-            } else {
-                flushLineVisits(numvisits, methodId, lineIndex);
+            }
+        } else {
+            flushLineVisits(numvisits, methodId, lineIndex);
+            if(numvisits != -1) {
                 flushLineTime(methodId, lineIndex, Registry.time);
             }
         }
+
     }
 
     private void visitSlotMethod(long methodId, int index, long slotMethod, long[] visits) {
