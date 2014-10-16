@@ -73,13 +73,9 @@
     </div>
     <table>
         <tr class="sortable">
-            <th id="sort-name" ng-click="toggleSort('index')">Name</th>
-            <th id="sort-run" ng-click="toggleSort('run')">Run</th>
-            <th id="sort-unrun" ng-click="toggleSort('notrun')">Not run</th>
-            <th id="sort-lines" ng-click="toggleSort('lines')">Lines</th>
-            <th id="sort-cover" ng-click="toggleSort('coverage')">Cover</th>
-            <th id="sort-sum" ng-click="toggleSort('sum')">Sum</th>
-            <th id="sort-max" ng-click="toggleSort('max')">Max</th>
+            <th ng-repeat="p in predicates" ng-click="toggleSort(p.predicate)" ng-class="{'selected': p.predicate === predicate}">
+                {{p.title}}
+            </th>
         </tr>
         <tr class="total" ng-init="total=0">
             <td class="label" id="totallabel">

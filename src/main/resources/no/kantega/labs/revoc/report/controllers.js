@@ -10,6 +10,15 @@ angular.module("revoc")
 
             $scope.predicate = "index";
 
+            $scope.predicates = [
+                {predicate: 'index', title: 'Name'},
+                {predicate: 'run', title: 'Run'},
+                {predicate: 'notrun', title: 'Not run'},
+                {predicate: 'lines', title: 'Lines'},
+                {predicate: 'coverage', title: 'Coverage'},
+                {predicate: 'sum', title: 'Sum'},
+                {predicate: 'max', title: 'Max'}
+            ];
             $interval(function() {
                 $scope.now = new Date().getTime()
             }, 1000);
