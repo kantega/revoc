@@ -132,9 +132,9 @@ angular.module("revoc", [])
         return function (data) {
             var array = new Array();
 
-            var totalNumLines = 0;
             var totalNumLinesRun = 0;
             var totalNumLinesNotRun = 0;
+            var totalNumLines = 0;
             var totalMax = 0;
             var totalSumRun = 0;
 
@@ -180,7 +180,7 @@ angular.module("revoc", [])
             return {
                 classes: array,
                 total: {
-                    run: totalNumLines,
+                    run: totalNumLinesRun,
                     notrun: totalNumLinesNotRun,
                     lines: totalNumLines,
                     coverage: Math.round(totalNumLinesRun * 100 / totalNumLines),
