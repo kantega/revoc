@@ -28,6 +28,7 @@ import org.objectweb.asm.MethodVisitor;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
+import java.util.BitSet;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
@@ -49,7 +50,7 @@ public class SimpleCoverageVisitorTest {
         int classId = Registry.newClassId(clazz.getName().replace('.', '/'), clazz.getClassLoader());
         CoverageClassVisitor visitor = new CoverageClassVisitor(cw, classId) {
             @Override
-            protected MethodVisitor createSecondPassAnalyzer(int classId, Map<Integer, Integer> classLineNumbers, Map<Integer, Integer> methodLineNumbers, Map<Integer, Integer> branchPoints, int reportLoad, Map<Integer, Boolean> oneTimeLines, MethodVisitor mv, int access, String name, String desc) {
+            protected MethodVisitor createSecondPassAnalyzer(int classId, Map<Integer, Integer> classLineNumbers, Map<Integer, Integer> methodLineNumbers, Map<Integer, Integer> branchPoints, int reportLoad, Map<Integer, BitSet> oneTimeLines, MethodVisitor mv, int access, String name, String desc) {
                 return new SimpleConverageVisitor(classId, classLineNumbers, mv);
             }
         };

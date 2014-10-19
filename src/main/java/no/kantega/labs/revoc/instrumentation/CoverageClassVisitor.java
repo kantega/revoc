@@ -153,7 +153,7 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
         }
     }
 
-    protected MethodVisitor createSecondPassAnalyzer(int classId, Map<Integer, Integer> classLineNumbers, Map<Integer, Integer> methodLineNumbers, Map<Integer, Integer> branchPoints, int reportLoad, Map<Integer, Boolean> oneTimeLines, MethodVisitor mv, int access, String name, String desc) {
+    protected MethodVisitor createSecondPassAnalyzer(int classId, Map<Integer, Integer> classLineNumbers, Map<Integer, Integer> methodLineNumbers, Map<Integer, Integer> branchPoints, int reportLoad, Map<Integer, BitSet> oneTimeLines, MethodVisitor mv, int access, String name, String desc) {
         return new SecondPassInstrumentation(classId, classLineNumbers, methodLineNumbers, branchPoints, reportLoad, oneTimeLines, mv, access, name, desc);
     }
 
@@ -197,7 +197,7 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
 
                 final Map<Integer, Integer> branchPoints = analyzeBranchPoints(instructions);
 
-                final Map<Integer, Boolean> oneTimeLines = new OneLineAnalyze().analyze(instructions);
+                final Map<Integer, BitSet> oneTimeLines = new OneLineAnalyze().analyze(this);
 
                 int numExitPoints = countExitPoints(instructions);
                 int reportLoad = (methodLineNumbers.size() + branchPoints.size()) * numExitPoints;
@@ -294,7 +294,7 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
         private final Map<Integer, Integer> classLineNumbers;
         private final Map<Integer, Integer> methodLineNumbers;
         private final Map<Integer, Integer> branchPoints;
-        private final Map<Integer, Boolean> oneTimeLines;
+        private final Map<Integer, BitSet> oneTimeLines;
         private final int access;
         private final String name;
         private int methodJumpIndex = 0;
@@ -314,7 +314,7 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
         private int threadBufferLocal;
         private boolean constructor;
 
-        protected SecondPassInstrumentation(int classId, Map<Integer, Integer> classLineNumbers, Map<Integer, Integer> methodLineNumbers, Map<Integer, Integer> branchPoints, int reportLoad, Map<Integer, Boolean> oneTimeLines, MethodVisitor methodVisitor, int access, String name, String desc) {
+        protected SecondPassInstrumentation(int classId, Map<Integer, Integer> classLineNumbers, Map<Integer, Integer> methodLineNumbers, Map<Integer, Integer> branchPoints, int reportLoad, Map<Integer, BitSet> oneTimeLines, MethodVisitor methodVisitor, int access, String name, String desc) {
             super(ASM5, methodVisitor, access, name, desc);
             this.classId = classId;
             this.classLineNumbers = classLineNumbers;
@@ -747,16 +747,6 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
                     mv.visitMethodInsn(Opcodes.INVOKESTATIC, "no/kantega/labs/revoc/registry/Registry", "registerBranchPointVisitsArray", "(I[I[II)V");
                 }
             }
-        }
-
-        private int numNonOneLiners(Map<Integer, Boolean> oneTimeLines) {
-            int c = 0;
-            for (Boolean aBoolean : oneTimeLines.values()) {
-                if(!aBoolean) {
-                    c++;
-                }
-            }
-            return c;
         }
 
     }

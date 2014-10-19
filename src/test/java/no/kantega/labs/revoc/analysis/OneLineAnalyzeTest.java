@@ -9,6 +9,7 @@ import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.MethodNode;
 
 import java.io.IOException;
+import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -25,7 +26,7 @@ public class OneLineAnalyzeTest {
     public void shouldIdentifyOneliners() throws IOException {
         ClassReader reader = new ClassReader(getClass().getResourceAsStream("OneLiner.class"));
 
-        final Map<String, InsnList> methods = new HashMap<String, InsnList>();
+        final Map<String, MethodNode> methods = new HashMap<>();
 
         reader.accept(new ClassVisitor(Opcodes.ASM5) {
             @Override
@@ -33,28 +34,34 @@ public class OneLineAnalyzeTest {
                 return new MethodNode(Opcodes.ASM5, access, name, desc , signature, exceptions) {
                     @Override
                     public void visitEnd() {
-                        methods.put(name, instructions);
+                        methods.put(name, this);
                     }
                 };
             }
         }, ClassReader.EXPAND_FRAMES);
 
 
-        Map<Integer, Boolean> oneliners = new OneLineAnalyze().analyze(methods.get("run"));
+        MethodNode run = methods.get("run");
+        Map<Integer, BitSet> oneliners = new OneLineAnalyze().analyze(run);
+        assertEquals(run.instructions.size(), oneliners.size());
 
-        assertEquals(12, oneliners.size());
-        assertTrue(oneliners.get(0));
-        assertTrue(oneliners.get(1));
-        assertFalse(oneliners.get(2));
-        assertFalse(oneliners.get(3));
-        assertTrue(oneliners.get(4));
-        assertFalse(oneliners.get(5));
-        assertFalse(oneliners.get(6));
-        assertFalse(oneliners.get(7));
-        assertFalse(oneliners.get(8));
-        assertFalse(oneliners.get(9));
-        assertTrue(oneliners.get(10));
-        assertTrue(oneliners.get(11));
+        BitSet fromReturn = oneliners.get(oneliners.size()-2);
+        assertTrue(fromReturn.get(0));
+        assertTrue(fromReturn.get(1));
+        assertTrue(fromReturn.get(2));
+        assertFalse(fromReturn.get(3));
+        assertTrue(fromReturn.get(4));
+        assertFalse(fromReturn.get(5));
+        assertFalse(fromReturn.get(6));
+        assertFalse(fromReturn.get(7));
+        assertFalse(fromReturn.get(8));
+        assertFalse(fromReturn.get(9));
+        assertTrue(fromReturn.get(10));
+        assertTrue(fromReturn.get(11));
+
+
+        // "blue" line should dominate "red"
+        assertTrue(oneliners.get(47).get(5));
 
 
     }
