@@ -77,9 +77,6 @@ public class OneLineAnalyze {
                 doms.add(i);
 
                 Set<Integer> preds = new HashSet<>();
-                if(false && !isGotoInstruction(instructions, i-1)) {
-                    preds.add(i-1);
-                }
                 if(jumpSources.containsKey(i)) {
                     preds.addAll(jumpSources.get(i));
                 }
@@ -150,7 +147,4 @@ public class OneLineAnalyze {
         return intercetions;
     }
 
-    private boolean isGotoInstruction(InsnList instructions, int i) {
-        return (instructions.get(i) instanceof JumpInsnNode && instructions.get(i).getOpcode() == Opcodes.GOTO);
-    }
 }
