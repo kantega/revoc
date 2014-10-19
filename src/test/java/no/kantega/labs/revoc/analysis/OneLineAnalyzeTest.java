@@ -59,10 +59,5 @@ public class OneLineAnalyzeTest {
         assertTrue(fromReturn.get(10));
         assertTrue(fromReturn.get(11));
 
-
-        // "blue" line should dominate "red"
-        assertTrue(oneliners.get(47).get(5));
-
-
     }
 }
