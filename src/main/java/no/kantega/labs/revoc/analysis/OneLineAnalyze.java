@@ -21,7 +21,6 @@ public class OneLineAnalyze {
 
     public Map<Integer, BitSet> analyze(MethodNode node) {
 
-        InsnList instructions = node.instructions;
 
 
         Map<Integer, Set<Integer>> jumpSources = new TreeMap<>();
@@ -50,6 +49,7 @@ public class OneLineAnalyze {
         }
 
 
+        InsnList instructions = node.instructions;
 
         Map<Integer, Set<Integer>> dominators = new HashMap<>();
         Set<Integer> all = new HashSet<>();
@@ -85,7 +85,6 @@ public class OneLineAnalyze {
                 dominators.put(i, doms);
             }
 
-            //printDominators(instructions, predecessors);
             if(hash == dominators.hashCode()) {
                 break;
             } else {
