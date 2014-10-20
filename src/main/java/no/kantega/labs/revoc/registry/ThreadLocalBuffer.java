@@ -62,6 +62,13 @@ public final class ThreadLocalBuffer implements Runnable {
             return multimethodAtSlot(methodId, slotMethod, visitedLines, lines, index);
     }
 
+    public final void visitLine(int numvisits, int lineIndex, long methodId) {
+        flushLineVisits(numvisits, methodId, lineIndex);
+        if(numvisits != -1) {
+            flushLineTime(methodId, lineIndex, Registry.time);
+        }
+    }
+
     public final void visitLine(int cursor, int numvisits, int lineIndex, long methodId) {
 
         if (cursor != -1) {
@@ -228,7 +235,7 @@ public final class ThreadLocalBuffer implements Runnable {
 
     }
 
-    private void flushLineVisits(long times, long methodId, int lineIndex) {
+    public void flushLineVisits(long times, long methodId, int lineIndex) {
         if (times == 0) {
             return;
         }
@@ -278,7 +285,9 @@ public final class ThreadLocalBuffer implements Runnable {
         if(slotMethod == -1) {
             return recordFirstMultiMethodVisit(methodId, index, lines, visitedLines);
         } else {
-            flushMethodVisits(methodId, 1, Registry.time);
+            long time = Registry.time;
+            flushMethodVisits(methodId, 1, time);
+            flushVisitedLinesTime(methodId, visitedLines, lines, time, -1);
             return -1;
         }
     }

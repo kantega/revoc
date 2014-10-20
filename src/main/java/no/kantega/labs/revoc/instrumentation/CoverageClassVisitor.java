@@ -313,6 +313,7 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
         private boolean profile;
         private int threadBufferLocal;
         private boolean constructor;
+        private int multiMethodCursorLocalVariable;
 
         protected SecondPassInstrumentation(int classId, Map<Integer, Integer> classLineNumbers, Map<Integer, Integer> methodLineNumbers, Map<Integer, Integer> branchPoints, int reportLoad, Map<Integer, BitSet> oneTimeLines, MethodVisitor methodVisitor, int access, String name, String desc) {
             super(ASM5, methodVisitor, access, name, desc);
@@ -354,6 +355,7 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
                 if(useLocalVariables) {
                     initializeLineNumberLocalVariables();
                     linesVisitedLocalVariable = newLocal(Type.LONG_TYPE);
+                    multiMethodCursorLocalVariable = newLocal(Type.INT_TYPE);
                     mv.visitInsn(LCONST_0);
                     mv.visitVarInsn(LSTORE, linesVisitedLocalVariable);
                 } else {
@@ -687,31 +689,36 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
 
                     if(methodLineNumbers.size() != 1) {
 
-                        int numNoneOneLiners =  isCatchBlock ? methodLineNumbers.size() : methodLineNumbers.size() - oneTimeLines.get(myIndex).cardinality();
-
                         mv.visitVarInsn(ALOAD, threadBufferLocal);
-                        mv.visitInsn(DUP);
                         mv.visitLdcInsn(((long) classId << 32 | (long) methodNames.size()));
                         mv.visitVarInsn(LLOAD, linesVisitedLocalVariable);
-                        visitIntConstantInstruction(lineNumberLocalVariables.size());
+                        visitIntConstantInstruction(Math.min(64, lineNumberLocalVariables.size()));
                         mv.visitMethodInsn(INVOKEVIRTUAL, "no/kantega/labs/revoc/registry/ThreadLocalBuffer", "visitMultiMethod", "(JJI)I");
+                        mv.visitVarInsn(ISTORE, multiMethodCursorLocalVariable);
 
-
-                        if (numNoneOneLiners == 0) {
-                            mv.visitInsn(POP2);
-                        } else {
-                            for (int i = 0; i < numNoneOneLiners - 1; i++) {
-                                mv.visitInsn(DUP2);
+                        for (Integer lineNumber : lineNumberLocalVariables.keySet()) {
+                            int lineIndex = methodLineNumbers.get(lineNumber);
+                            if (isCatchBlock || !oneTimeLines.get(myIndex).get(lineIndex)) {
+                                if (lineIndex < 64) {
+                                    mv.visitVarInsn(ALOAD, threadBufferLocal);
+                                    mv.visitVarInsn(ILOAD, multiMethodCursorLocalVariable);
+                                    mv.visitVarInsn(ILOAD, lineNumberLocalVariables.get(lineNumber));
+                                    visitIntConstantInstruction(lineIndex);
+                                    mv.visitLdcInsn((long) classId << 32 | (long) methodNames.size());
+                                    mv.visitMethodInsn(INVOKEVIRTUAL, "no/kantega/labs/revoc/registry/ThreadLocalBuffer", "visitLine", "(IIIJ)V");
+                                }
                             }
                         }
                         for (Integer lineNumber : lineNumberLocalVariables.keySet()) {
-                            if (isCatchBlock || !oneTimeLines.get(myIndex).get(methodLineNumbers.get(lineNumber))) {
-                                mv.visitVarInsn(ILOAD, lineNumberLocalVariables.get(lineNumber));
-                                visitIntConstantInstruction(methodLineNumbers.get(lineNumber));
-                                mv.visitLdcInsn((long) classId << 32 | (long) methodNames.size());
-                                mv.visitMethodInsn(INVOKEVIRTUAL, "no/kantega/labs/revoc/registry/ThreadLocalBuffer", "visitLine", "(IIIJ)V");
-                            }
+                            int lineIndex = methodLineNumbers.get(lineNumber);
 
+                            if(lineIndex >= 64) {
+                                mv.visitVarInsn(ALOAD, threadBufferLocal);
+                                mv.visitVarInsn(ILOAD, lineNumberLocalVariables.get(lineNumber));
+                                visitIntConstantInstruction(lineIndex);
+                                mv.visitLdcInsn((long) classId << 32 | (long) methodNames.size());
+                                mv.visitMethodInsn(INVOKEVIRTUAL, "no/kantega/labs/revoc/registry/ThreadLocalBuffer", "visitLine", "(IIJ)V");
+                            }
                         }
 
                         mv.visitVarInsn(ALOAD, threadBufferLocal);
