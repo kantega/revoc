@@ -48,7 +48,7 @@ public class OneLineAnalyzeTest {
         BitSet fromReturn = oneliners.get(oneliners.size()-2);
         assertTrue(fromReturn.get(0));
         assertTrue(fromReturn.get(1));
-        assertTrue(fromReturn.get(2));
+        assertFalse(fromReturn.get(2)); // In a loop
         assertFalse(fromReturn.get(3));
         assertTrue(fromReturn.get(4));
         assertFalse(fromReturn.get(5));

@@ -1,8 +1,7 @@
 package no.kantega.labs.revoc.analysis;
 
-import org.objectweb.asm.tree.InsnList;
-import org.objectweb.asm.tree.LineNumberNode;
-import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.tree.*;
 import org.objectweb.asm.tree.analysis.Analyzer;
 import org.objectweb.asm.tree.analysis.AnalyzerException;
 import org.objectweb.asm.tree.analysis.BasicInterpreter;
@@ -66,6 +65,42 @@ public class OneLineAnalyze {
 
         int hash = dominators.hashCode();
 
+        Map<Integer, Set<Integer>> predecessors = new TreeMap<>();
+
+        for (int i = 0; i < instructions.size(); i++) {
+            predecessors.put(i, new HashSet<>());
+        }
+        for (int i = 0; i < instructions.size()-1; i++) {
+            AbstractInsnNode ins = instructions.get(i);
+            if(ins instanceof JumpInsnNode) {
+                int index = instructions.indexOf(((JumpInsnNode) ins).label);
+                if(ins.getOpcode() == Opcodes.GOTO) {
+                    predecessors.get(index).add(i);
+                    predecessors.get(index).addAll(predecessors.get(i));
+                } else {
+                    predecessors.get(i+1).add(i);
+                    predecessors.get(i+1).addAll(predecessors.get(i));
+                    predecessors.get(index).add(i);
+                    predecessors.get(index).addAll(predecessors.get(i));
+                }
+            } else {
+                predecessors.get(i+1).add(i);
+                predecessors.get(i+1).addAll(predecessors.get(i));
+
+            }
+        }
+
+        BitSet loops = new BitSet();
+        int lineNumber = -1;
+        for (int i = 0; i < instructions.size(); i++) {
+            AbstractInsnNode ins = instructions.get(i);
+            if(ins instanceof LineNumberNode) {
+                lineNumber = ((LineNumberNode) ins).line;
+            }
+            if(lineNumber != -1 && predecessors.get(i).contains(i)) {
+                loops.set(lineNumber);
+            }
+        }
         while (true) {
 
             for (int i = 1; i < instructions.size(); i++) {
@@ -87,8 +122,9 @@ public class OneLineAnalyze {
                 hash = dominators.hashCode();
             }
 
-
         }
+
+
 
 
         Map<Integer, BitSet> oneLiners = new TreeMap<>();
@@ -107,12 +143,18 @@ public class OneLineAnalyze {
             oneLiners.put(i, new BitSet());
         }
 
+
+
         for(int i = 0; i < instructions.size(); i++) {
             for (Integer d : dominators.get(instructions.indexOf(instructions.get(i)))) {
                 if (instructions.get(d) instanceof LineNumberNode) {
+
                     int line = ((LineNumberNode) instructions.get(d)).line;
-                    int index = lineIndex.get(line);
-                    oneLiners.get(i).set(index, true);
+                    if(!loops.get(line)) {
+                        int index = lineIndex.get(line);
+                        oneLiners.get(i).set(index, true);
+                    }
+
                 }
             }
         }
