@@ -687,63 +687,37 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
 
                     if(methodLineNumbers.size() != 1) {
 
-                         if( !isCatchBlock) {
-                             int numNoneOneLiners =  methodLineNumbers.size() - oneTimeLines.get(myIndex).cardinality();
+                        int numNoneOneLiners =  isCatchBlock ? methodLineNumbers.size() : methodLineNumbers.size() - oneTimeLines.get(myIndex).cardinality();
 
-                             mv.visitVarInsn(ALOAD, threadBufferLocal);
-                             mv.visitInsn(DUP);
-                             mv.visitLdcInsn(((long) classId << 32 | (long) methodNames.size()));
-                             mv.visitVarInsn(LLOAD, linesVisitedLocalVariable);
-                             visitIntConstantInstruction(lineNumberLocalVariables.size());
-                             mv.visitMethodInsn(INVOKEVIRTUAL, "no/kantega/labs/revoc/registry/ThreadLocalBuffer", "visitMultiMethod", "(JJI)I");
-
-
-                             if (numNoneOneLiners == 0) {
-                                 mv.visitInsn(POP2);
-                             } else {
-                                 for (int i = 0; i < numNoneOneLiners - 1; i++) {
-                                     mv.visitInsn(DUP2);
-                                 }
-                             }
-                             for (Integer lineNumber : lineNumberLocalVariables.keySet()) {
-                                 if (!oneTimeLines.get(myIndex).get(methodLineNumbers.get(lineNumber))) {
-                                     mv.visitVarInsn(ILOAD, lineNumberLocalVariables.get(lineNumber));
-                                     visitIntConstantInstruction(methodLineNumbers.get(lineNumber));
-                                     mv.visitLdcInsn((long) classId << 32 | (long) methodNames.size());
-                                     mv.visitMethodInsn(INVOKEVIRTUAL, "no/kantega/labs/revoc/registry/ThreadLocalBuffer", "visitLine", "(IIIJ)V");
-                                 }
-
-                             }
-
-                             mv.visitVarInsn(ALOAD, threadBufferLocal);
-                             mv.visitLdcInsn((long) classId << 32 | (long) methodNames.size());
-                             mv.visitMethodInsn(INVOKEVIRTUAL, "no/kantega/labs/revoc/registry/ThreadLocalBuffer", "popStack", "(J)V");
-                         }  else {
-                             mv.visitVarInsn(ALOAD, threadBufferLocal);
-                             mv.visitInsn(DUP);
-                             mv.visitLdcInsn(((long) classId << 32 | (long) methodNames.size()));
-                             mv.visitVarInsn(LLOAD, linesVisitedLocalVariable);
-                             visitIntConstantInstruction(lineNumberLocalVariables.size());
-                             mv.visitMethodInsn(INVOKEVIRTUAL, "no/kantega/labs/revoc/registry/ThreadLocalBuffer", "visitMultiMethod", "(JJI)I");
-
-                             for (int i = 0; i < lineNumberLocalVariables.size() - 1; i++) {
-                                 mv.visitInsn(DUP2);
-                             }
-                             for (Integer lineNumber : lineNumberLocalVariables.keySet()) {
-
-                                 mv.visitVarInsn(ILOAD, lineNumberLocalVariables.get(lineNumber));
-                                 visitIntConstantInstruction(methodLineNumbers.get(lineNumber));
-                                 mv.visitLdcInsn((long) classId << 32 | (long) methodNames.size());
-                                 mv.visitMethodInsn(INVOKEVIRTUAL, "no/kantega/labs/revoc/registry/ThreadLocalBuffer", "visitLine", "(IIIJ)V");
-
-                             }
+                        mv.visitVarInsn(ALOAD, threadBufferLocal);
+                        mv.visitInsn(DUP);
+                        mv.visitLdcInsn(((long) classId << 32 | (long) methodNames.size()));
+                        mv.visitVarInsn(LLOAD, linesVisitedLocalVariable);
+                        visitIntConstantInstruction(lineNumberLocalVariables.size());
+                        mv.visitMethodInsn(INVOKEVIRTUAL, "no/kantega/labs/revoc/registry/ThreadLocalBuffer", "visitMultiMethod", "(JJI)I");
 
 
-                             mv.visitVarInsn(ALOAD, threadBufferLocal);
-                             mv.visitLdcInsn((long) classId << 32 | (long) methodNames.size());
-                             mv.visitMethodInsn(INVOKEVIRTUAL, "no/kantega/labs/revoc/registry/ThreadLocalBuffer", "popStack", "(J)V");
+                        if (numNoneOneLiners == 0) {
+                            mv.visitInsn(POP2);
+                        } else {
+                            for (int i = 0; i < numNoneOneLiners - 1; i++) {
+                                mv.visitInsn(DUP2);
+                            }
+                        }
+                        for (Integer lineNumber : lineNumberLocalVariables.keySet()) {
+                            if (isCatchBlock || !oneTimeLines.get(myIndex).get(methodLineNumbers.get(lineNumber))) {
+                                mv.visitVarInsn(ILOAD, lineNumberLocalVariables.get(lineNumber));
+                                visitIntConstantInstruction(methodLineNumbers.get(lineNumber));
+                                mv.visitLdcInsn((long) classId << 32 | (long) methodNames.size());
+                                mv.visitMethodInsn(INVOKEVIRTUAL, "no/kantega/labs/revoc/registry/ThreadLocalBuffer", "visitLine", "(IIIJ)V");
+                            }
 
-                         }
+                        }
+
+                        mv.visitVarInsn(ALOAD, threadBufferLocal);
+                        mv.visitLdcInsn((long) classId << 32 | (long) methodNames.size());
+                        mv.visitMethodInsn(INVOKEVIRTUAL, "no/kantega/labs/revoc/registry/ThreadLocalBuffer", "popStack", "(J)V");
+
                     }
                 } else {
 
