@@ -87,7 +87,7 @@ public final class ThreadLocalBuffer implements Runnable {
 
     private void maybeFirstMethodVisit(long methodId, int index, long slotMethod) {
         if(slotMethod == -1) {
-            recordFirstMethodVisit(slotMethod, methodId, index);
+            recordFirstMethodVisit(methodId, index);
         } else {
             flushMethodVisits(methodId, 1, Registry.time);
         }
@@ -109,13 +109,13 @@ public final class ThreadLocalBuffer implements Runnable {
 
 
 
-    private void recordFirstMethodVisit(long slotMethod, long methodId, int index) {
+    private void recordFirstMethodVisit(long methodId, int index) {
 
         long[] visits = methodVisits;
-        if(slotMethod == -1) {
-            visits[index] = methodId;
-            recordMethodVisitAtIndex(index);
-        }
+
+        visits[index] = methodId;
+        recordMethodVisitAtIndex(index);
+
 
     }
 
