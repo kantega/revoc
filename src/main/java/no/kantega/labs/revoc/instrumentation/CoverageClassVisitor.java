@@ -335,10 +335,13 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
         public Label handler;
 
 
+        int insIdx = 0;
 
         @Override
         public void visitCode() {
             super.visitCode();
+
+            insIdx = 0;
 
             if(name.equals("<clinit>") && (access & ACC_STATIC) != 0) {
                 staticInjected = true;
@@ -469,6 +472,7 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
 
         @Override
         public void visitLineNumber(int lineNumber, Label label) {
+            insIdx++;
             mv.visitLineNumber(lineNumber, label);
             if(trackLines) {
                 if(useLocalVariables) {
@@ -517,6 +521,7 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
 
         @Override
         public void visitMethodInsn(int opcode, String owner, String name, String desc, boolean itf) {
+            insIdx++;
             /*
             if(profile && isWaitMethod(opcode, owner, name, desc)) {
                 nanoTime();
@@ -550,10 +555,12 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
 
         @Override
         public void visitInsn(int i) {
+
             if (trackTime && i >= IRETURN && i <= RETURN) {
                 //updateTime();
             }
             super.visitInsn(i);
+            insIdx++;
         }
 
         private void updateTime() {
@@ -585,7 +592,7 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
             if(methodLineNumbers.size() > 1) {
                 mv.visitTryCatchBlock(before, handler, handler, null);
                 mv.visitLabel(handler);
-                generateLineVisitRegistration(true);
+                generateLineVisitRegistration(true, -1);
                 mv.visitInsn(ATHROW);
             }
             mv.visitMaxs(maxStack, maxLocals + lineNumberLocalVariables.size() + beforeBranchPointLocalVariables.size() + afterBranchPointLocalVariables.size());
@@ -593,13 +600,15 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
 
         @Override
         protected void onMethodExit(int opcode) {
+            int myIndex = insIdx;
             if (opcode != ATHROW && methodLineNumbers.size() > 1) {
-                generateLineVisitRegistration(false);
+                generateLineVisitRegistration(false, myIndex);
             }
         }
 
         @Override
         public void visitJumpInsn(int i, Label label) {
+            insIdx++;
             if (!trackBranches || i == Opcodes.GOTO || i == Opcodes.JSR ) {
                 super.visitJumpInsn(i, label);
             } else {
@@ -642,7 +651,7 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
             }
         }
 
-        private void generateLineVisitRegistration(boolean isCatchBlock) {
+        private void generateLineVisitRegistration(boolean isCatchBlock, int myIndex) {
 
             if(profile) {
                 mv.visitVarInsn(ALOAD, frameMapLocalVariable);
@@ -678,33 +687,63 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
 
                     if(methodLineNumbers.size() != 1) {
 
+                         if( !isCatchBlock) {
+                             int numNoneOneLiners =  methodLineNumbers.size() - oneTimeLines.get(myIndex).cardinality();
+
+                             mv.visitVarInsn(ALOAD, threadBufferLocal);
+                             mv.visitInsn(DUP);
+                             mv.visitLdcInsn(((long) classId << 32 | (long) methodNames.size()));
+                             mv.visitVarInsn(LLOAD, linesVisitedLocalVariable);
+                             visitIntConstantInstruction(lineNumberLocalVariables.size());
+                             mv.visitMethodInsn(INVOKEVIRTUAL, "no/kantega/labs/revoc/registry/ThreadLocalBuffer", "visitMultiMethod", "(JJI)I");
 
 
-                        mv.visitVarInsn(ALOAD, threadBufferLocal);
-                        mv.visitInsn(DUP);
-                        mv.visitLdcInsn(((long)classId << 32 | (long) methodNames.size()));
-                        mv.visitVarInsn(LLOAD, linesVisitedLocalVariable);
-                        visitIntConstantInstruction(lineNumberLocalVariables.size());
-                        mv.visitMethodInsn(INVOKEVIRTUAL, "no/kantega/labs/revoc/registry/ThreadLocalBuffer", "visitMultiMethod", "(JJI)I");
+                             if (numNoneOneLiners == 0) {
+                                 mv.visitInsn(POP2);
+                             } else {
+                                 for (int i = 0; i < numNoneOneLiners - 1; i++) {
+                                     mv.visitInsn(DUP2);
+                                 }
+                             }
+                             for (Integer lineNumber : lineNumberLocalVariables.keySet()) {
+                                 if (!oneTimeLines.get(myIndex).get(methodLineNumbers.get(lineNumber))) {
+                                     mv.visitVarInsn(ILOAD, lineNumberLocalVariables.get(lineNumber));
+                                     visitIntConstantInstruction(methodLineNumbers.get(lineNumber));
+                                     mv.visitLdcInsn((long) classId << 32 | (long) methodNames.size());
+                                     mv.visitMethodInsn(INVOKEVIRTUAL, "no/kantega/labs/revoc/registry/ThreadLocalBuffer", "visitLine", "(IIIJ)V");
+                                 }
 
-                        for(int i = 0; i < lineNumberLocalVariables.size()-1; i++) {
-                            mv.visitInsn(DUP2);
-                        }
-                        for (Integer lineNumber : lineNumberLocalVariables.keySet()) {
+                             }
 
-                            mv.visitVarInsn(ILOAD, lineNumberLocalVariables.get(lineNumber));
-                            visitIntConstantInstruction(methodLineNumbers.get(lineNumber));
-                            mv.visitLdcInsn((long)classId << 32 | (long) methodNames.size());
-                            mv.visitMethodInsn(INVOKEVIRTUAL, "no/kantega/labs/revoc/registry/ThreadLocalBuffer", "visitLine", "(IIIJ)V");
+                             mv.visitVarInsn(ALOAD, threadBufferLocal);
+                             mv.visitLdcInsn((long) classId << 32 | (long) methodNames.size());
+                             mv.visitMethodInsn(INVOKEVIRTUAL, "no/kantega/labs/revoc/registry/ThreadLocalBuffer", "popStack", "(J)V");
+                         }  else {
+                             mv.visitVarInsn(ALOAD, threadBufferLocal);
+                             mv.visitInsn(DUP);
+                             mv.visitLdcInsn(((long) classId << 32 | (long) methodNames.size()));
+                             mv.visitVarInsn(LLOAD, linesVisitedLocalVariable);
+                             visitIntConstantInstruction(lineNumberLocalVariables.size());
+                             mv.visitMethodInsn(INVOKEVIRTUAL, "no/kantega/labs/revoc/registry/ThreadLocalBuffer", "visitMultiMethod", "(JJI)I");
 
-                        }
+                             for (int i = 0; i < lineNumberLocalVariables.size() - 1; i++) {
+                                 mv.visitInsn(DUP2);
+                             }
+                             for (Integer lineNumber : lineNumberLocalVariables.keySet()) {
+
+                                 mv.visitVarInsn(ILOAD, lineNumberLocalVariables.get(lineNumber));
+                                 visitIntConstantInstruction(methodLineNumbers.get(lineNumber));
+                                 mv.visitLdcInsn((long) classId << 32 | (long) methodNames.size());
+                                 mv.visitMethodInsn(INVOKEVIRTUAL, "no/kantega/labs/revoc/registry/ThreadLocalBuffer", "visitLine", "(IIIJ)V");
+
+                             }
 
 
-                        mv.visitVarInsn(ALOAD, threadBufferLocal);
-                        mv.visitLdcInsn((long)classId << 32 | (long) methodNames.size());
-                        mv.visitMethodInsn(INVOKEVIRTUAL, "no/kantega/labs/revoc/registry/ThreadLocalBuffer", "popStack", "(J)V");
+                             mv.visitVarInsn(ALOAD, threadBufferLocal);
+                             mv.visitLdcInsn((long) classId << 32 | (long) methodNames.size());
+                             mv.visitMethodInsn(INVOKEVIRTUAL, "no/kantega/labs/revoc/registry/ThreadLocalBuffer", "popStack", "(J)V");
 
-
+                         }
                     }
                 } else {
 
@@ -749,7 +788,75 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
             }
         }
 
+        @Override
+        public void visitLabel(Label label) {
+            insIdx++;
+            super.visitLabel(label);
+
+        }
+
+        @Override
+        public void visitVarInsn(int opcode, int var) {
+            insIdx++;
+            super.visitVarInsn(opcode, var);
+        }
+
+        @Override
+        public void visitFrame(int type, int nLocal, Object[] local, int nStack, Object[] stack) {
+            insIdx++;
+            super.visitFrame(type, nLocal, local, nStack, stack);
+        }
+
+        @Override
+        public void visitFieldInsn(int opcode, String owner, String name, String desc) {
+            insIdx++;
+            super.visitFieldInsn(opcode, owner, name, desc);
+        }
+
+        @Override
+        public void visitIntInsn(int opcode, int operand) {
+            insIdx++;
+            super.visitIntInsn(opcode, operand);
+        }
+
+        @Override
+        public void visitLdcInsn(Object cst) {
+            insIdx++;
+            super.visitLdcInsn(cst);
+        }
+
+        @Override
+        public void visitMultiANewArrayInsn(String desc, int dims) {
+            insIdx++;
+            super.visitMultiANewArrayInsn(desc, dims);
+        }
+
+        @Override
+        public void visitTypeInsn(int opcode, String type) {
+            insIdx++;
+            super.visitTypeInsn(opcode, type);
+        }
+
+        @Override
+        public void visitInvokeDynamicInsn(String name, String desc, Handle bsm, Object... bsmArgs) {
+            insIdx++;
+            super.visitInvokeDynamicInsn(name, desc, bsm, bsmArgs);
+        }
+
+        @Override
+        public void visitLookupSwitchInsn(Label dflt, int[] keys, Label[] labels) {
+            insIdx++;
+            super.visitLookupSwitchInsn(dflt, keys, labels);
+        }
+
+        @Override
+        public void visitTableSwitchInsn(int min, int max, Label dflt, Label... labels) {
+            insIdx++;
+            super.visitTableSwitchInsn(min, max, dflt, labels);
+        }
     }
+
+
 
     public BitSet getExistingLines() {
         return existingLines;
