@@ -485,10 +485,7 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
 
                             int index = methodLineNumbers.get(lineNumber);
                             mv.visitVarInsn(LLOAD, linesVisitedLocalVariable);
-                            mv.visitInsn(ICONST_1);
-                            visitIntConstantInstruction(index);
-                            mv.visitInsn(ISHL);
-                            mv.visitInsn(I2L);
+                            mv.visitLdcInsn((long)(1 << index));
                             mv.visitInsn(LOR);
                             mv.visitVarInsn(LSTORE, linesVisitedLocalVariable);
 
