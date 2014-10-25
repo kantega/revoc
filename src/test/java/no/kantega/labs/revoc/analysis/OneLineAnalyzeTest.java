@@ -53,45 +53,55 @@ public class OneLineAnalyzeTest {
     @Test
     public void shouldIdentifyOneliners() throws IOException {
 
-        Map<Integer, BitSet> oneliners = analyze.getOneLiners();
-        assertEquals(instructions.size(), oneliners.size());
 
-        BitSet fromReturn = oneliners.get(oneliners.size()-2);
-        assertTrue(fromReturn.get(0));
-        assertTrue(fromReturn.get(1));
-        assertFalse(fromReturn.get(2)); // In a loop
-        assertFalse(fromReturn.get(3));
-        assertTrue(fromReturn.get(4));
-        assertFalse(fromReturn.get(5));
-        assertFalse(fromReturn.get(6));
-        assertFalse(fromReturn.get(7));
-        assertFalse(fromReturn.get(8));
-        assertFalse(fromReturn.get(9));
-        assertTrue(fromReturn.get(10));
-        assertTrue(fromReturn.get(11));
+        int exitInstruction = analyze.instructionSize()-2;
+        assertTrue(analyze.mustHaveRunOnce(exitInstruction, 0));
+        assertTrue(analyze.mustHaveRunOnce(exitInstruction, 1));
+        assertFalse(analyze.mustHaveRunOnce(exitInstruction, 2));// In a loop
+        assertFalse(analyze.mustHaveRunOnce(exitInstruction, 3));
+        assertTrue(analyze.mustHaveRunOnce(exitInstruction, 4));
+        assertFalse(analyze.mustHaveRunOnce(exitInstruction, 5));
+        assertFalse(analyze.mustHaveRunOnce(exitInstruction, 6));
+        assertFalse(analyze.mustHaveRunOnce(exitInstruction, 7));
+        assertFalse(analyze.mustHaveRunOnce(exitInstruction, 8));
+        assertFalse(analyze.mustHaveRunOnce(exitInstruction, 9));
+        assertTrue(analyze.mustHaveRunOnce(exitInstruction, 11));
+        assertTrue(analyze.mustHaveRunOnce(exitInstruction, 12));
 
     }
 
     @Test
     public void shouldIdentifyMustHaveRun() throws IOException {
 
-        Map<Integer, BitSet> oneliners = analyze.getMustHaveRun();
+        int exitInstruction = analyze.instructionSize()-2;
+        
+        assertTrue(analyze.mustHaveRun(exitInstruction, 0));
+        assertTrue(analyze.mustHaveRun(exitInstruction, 1));
+        assertTrue(analyze.mustHaveRun(exitInstruction, 2)); // In a loop
+        assertFalse(analyze.mustHaveRun(exitInstruction, 3));
+        assertTrue(analyze.mustHaveRun(exitInstruction, 4));
+        assertFalse(analyze.mustHaveRun(exitInstruction, 5));
+        assertFalse(analyze.mustHaveRun(exitInstruction, 6));
+        assertFalse(analyze.mustHaveRun(exitInstruction, 7));
+        assertFalse(analyze.mustHaveRun(exitInstruction, 8));
+        assertFalse(analyze.mustHaveRun(exitInstruction, 9));
+        assertTrue(analyze.mustHaveRun(exitInstruction, 11));
+        assertTrue(analyze.mustHaveRun(exitInstruction, 12));
 
-        assertEquals(instructions.size(), oneliners.size());
+    }
 
-        BitSet fromReturn = oneliners.get(oneliners.size()-2);
-        assertTrue(fromReturn.get(0));
-        assertTrue(fromReturn.get(1));
-        assertTrue(fromReturn.get(2)); // In a loop
-        assertFalse(fromReturn.get(3));
-        assertTrue(fromReturn.get(4));
-        assertFalse(fromReturn.get(5));
-        assertFalse(fromReturn.get(6));
-        assertFalse(fromReturn.get(7));
-        assertFalse(fromReturn.get(8));
-        assertFalse(fromReturn.get(9));
-        assertTrue(fromReturn.get(10));
-        assertTrue(fromReturn.get(11));
+    @Test
+    public void shouldIdentifyCantHaveRun() throws IOException {
 
+        int exitInstruction = 72;
+
+
+        for(int i = 0; i < 12; i++) {
+            if(i < 11) {
+                assertFalse("Line index " + i + " should be runnable when exiting from instruction " + exitInstruction, analyze.cantHaveRun(exitInstruction, i));
+            } else {
+                assertTrue(analyze.cantHaveRun(exitInstruction, i));
+            }
+        }
     }
 }

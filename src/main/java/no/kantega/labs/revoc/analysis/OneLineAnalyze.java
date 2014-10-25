@@ -16,18 +16,24 @@ public class OneLineAnalyze {
 
     private final Map<Integer, BitSet> oneLiners;
     private final Map<Integer, BitSet> mustHaveRun;
+    private final Map<Integer, BitSet> cantHaveRun;
 
-    private OneLineAnalyze(Map<Integer, BitSet> oneLiners, Map<Integer, BitSet> mustHaveRun) {
+    private OneLineAnalyze(Map<Integer, BitSet> oneLiners, Map<Integer, BitSet> mustHaveRun, Map<Integer, BitSet> cantHaveRun) {
         this.oneLiners = oneLiners;
         this.mustHaveRun = mustHaveRun;
+        this.cantHaveRun = cantHaveRun;
     }
 
-    public Map<Integer, BitSet> getOneLiners() {
-        return oneLiners;
+    public boolean mustHaveRunOnce(int exitInstruction, int lineIndex) {
+        return oneLiners.get(exitInstruction).get(lineIndex);
     }
 
-    public Map<Integer, BitSet> getMustHaveRun() {
-        return mustHaveRun;
+    public boolean mustHaveRun(int exitInstruction, int lineIndex) {
+        return mustHaveRun.get(exitInstruction).get(lineIndex);
+    }
+
+    public boolean cantHaveRun(int exitInstruction, int lineIndex) {
+        return cantHaveRun.get(exitInstruction).get(lineIndex);
     }
 
     public static OneLineAnalyze analyze(MethodNode node) {
@@ -86,24 +92,34 @@ public class OneLineAnalyze {
         for (int i = 0; i < instructions.size(); i++) {
             predecessors.put(i, new HashSet<>());
         }
-        for (int i = 0; i < instructions.size()-1; i++) {
-            AbstractInsnNode ins = instructions.get(i);
-            if(ins instanceof JumpInsnNode) {
-                int index = instructions.indexOf(((JumpInsnNode) ins).label);
-                if(ins.getOpcode() == Opcodes.GOTO) {
-                    predecessors.get(index).add(i);
-                    predecessors.get(index).addAll(predecessors.get(i));
-                } else {
-                    predecessors.get(i+1).add(i);
-                    predecessors.get(i+1).addAll(predecessors.get(i));
-                    predecessors.get(index).add(i);
-                    predecessors.get(index).addAll(predecessors.get(i));
-                }
-            } else {
-                predecessors.get(i+1).add(i);
-                predecessors.get(i+1).addAll(predecessors.get(i));
 
+        int prehas = predecessors.hashCode();
+        while(true) {
+            for (int i = 0; i < instructions.size() - 1; i++) {
+                AbstractInsnNode ins = instructions.get(i);
+                if (ins instanceof JumpInsnNode) {
+                    int index = instructions.indexOf(((JumpInsnNode) ins).label);
+                    if (ins.getOpcode() == Opcodes.GOTO) {
+                        predecessors.get(index).add(i);
+                        predecessors.get(index).addAll(predecessors.get(i));
+                    } else {
+                        predecessors.get(i + 1).add(i);
+                        predecessors.get(i + 1).addAll(predecessors.get(i));
+                        predecessors.get(index).add(i);
+                        predecessors.get(index).addAll(predecessors.get(i));
+                    }
+                } else {
+                    predecessors.get(i + 1).add(i);
+                    predecessors.get(i + 1).addAll(predecessors.get(i));
+
+                }
             }
+
+            int newPrehash = predecessors.hashCode();
+            if(newPrehash == prehas) {
+                break;
+            }
+            prehas = newPrehash;
         }
 
         BitSet loops = new BitSet();
@@ -145,6 +161,7 @@ public class OneLineAnalyze {
 
         Map<Integer, BitSet> oneLiners = new TreeMap<>();
         Map<Integer, BitSet> mustHaveRun = new TreeMap<>();
+        Map<Integer, BitSet> cantHaveRun = new TreeMap<>();
 
         Map<Integer, Integer> lineIndex = new TreeMap<>();
 
@@ -159,6 +176,7 @@ public class OneLineAnalyze {
             }
             oneLiners.put(i, new BitSet());
             mustHaveRun.put(i, new BitSet());
+            cantHaveRun.put(i, new BitSet());
         }
 
 
@@ -176,8 +194,18 @@ public class OneLineAnalyze {
 
                 }
             }
+            for(int x = 0; x < instructions.size(); x++) {
+                if (instructions.get(x) instanceof LineNumberNode) {
+                    if (!predecessors.get(i).contains(x)) {
+                        int line = ((LineNumberNode) instructions.get(x)).line;
+                        int index = lineIndex.get(line);
+
+                        cantHaveRun.get(i).set(index);
+                    }
+                }
+            }
         }
-        return new OneLineAnalyze(oneLiners, mustHaveRun);
+        return new OneLineAnalyze(oneLiners, mustHaveRun, cantHaveRun);
     }
 
     private static void addJumpSource(Map<Integer, Set<Integer>> jumpSources, int insn, int successor) {
@@ -203,4 +231,7 @@ public class OneLineAnalyze {
         return intercetions;
     }
 
+    public int instructionSize() {
+        return oneLiners.size();
+    }
 }

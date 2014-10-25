@@ -21,6 +21,7 @@ public class OneLiner {
             } finally {
                 System.out.println("green");
             }
+            return;
         }
 
         System.out.println(80);

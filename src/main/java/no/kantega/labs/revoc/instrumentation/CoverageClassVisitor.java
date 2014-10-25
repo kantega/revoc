@@ -680,7 +680,7 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
                             for (Integer lineNumber : lineNumberLocalVariables.keySet()) {
                                 int lineIndex = methodLineNumbers.get(lineNumber);
                                 if (lineIndex < 64) {
-                                    if (!isCatchBlock && oneTimeLines.getMustHaveRun().get(myIndex).get(lineIndex)) {
+                                    if (oneTimeLines.mustHaveRun(myIndex, lineIndex)) {
                                         initialMask |= (1l << lineIndex);
                                     }
                                 }
@@ -689,15 +689,26 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
                         mv.visitLdcInsn(initialMask);
                         for (Integer lineNumber : lineNumberLocalVariables.keySet()) {
                             int lineIndex = methodLineNumbers.get(lineNumber);
-                                if (lineIndex < 64 && (isCatchBlock || !oneTimeLines.getMustHaveRun().get(myIndex).get(lineIndex))) {
-                                    mv.visitVarInsn(ILOAD, lineNumberLocalVariables.get(lineNumber));
-                                    mv.visitInsn(ICONST_M1);
-                                    Label after = new Label();
-                                    mv.visitJumpInsn(IF_ICMPEQ, after);
-                                    mv.visitLdcInsn(1l << lineIndex);
-                                    mv.visitInsn(LOR);
-                                    mv.visitLabel(after);
-                                }
+                            if(lineIndex >= 64) {
+                                continue;
+                            }
+                            if(isCatchBlock) {
+                                continue;
+                            }
+                            if(oneTimeLines.cantHaveRun(myIndex, lineIndex)) {
+                                continue;
+                            }
+                            if(oneTimeLines.mustHaveRun(myIndex, lineIndex)) {
+                                continue;
+                            }
+
+                            mv.visitVarInsn(ILOAD, lineNumberLocalVariables.get(lineNumber));
+                            mv.visitInsn(ICONST_M1);
+                            Label after = new Label();
+                            mv.visitJumpInsn(IF_ICMPEQ, after);
+                            mv.visitLdcInsn(1l << lineIndex);
+                            mv.visitInsn(LOR);
+                            mv.visitLabel(after);
 
                         }
 
@@ -707,11 +718,15 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
 
                         for (Integer lineNumber : lineNumberLocalVariables.keySet()) {
                             int lineIndex = methodLineNumbers.get(lineNumber);
-                            if (isCatchBlock || !oneTimeLines.getOneLiners().get(myIndex).get(lineIndex)) {
+                            if (isCatchBlock || !oneTimeLines.mustHaveRunOnce(myIndex, lineIndex)) {
                                 if (lineIndex < 64) {
                                     mv.visitVarInsn(ALOAD, threadBufferLocal);
                                     mv.visitVarInsn(ILOAD, multiMethodCursorLocalVariable);
-                                    mv.visitVarInsn(ILOAD, lineNumberLocalVariables.get(lineNumber));
+                                    if(!isCatchBlock && oneTimeLines.cantHaveRun(myIndex, lineIndex)) {
+                                        mv.visitInsn(ICONST_M1);
+                                    } else {
+                                        mv.visitVarInsn(ILOAD, lineNumberLocalVariables.get(lineNumber));
+                                    }
                                     visitIntConstantInstruction(lineIndex);
                                     mv.visitLdcInsn((long) classId << 32 | (long) methodNames.size());
                                     mv.visitMethodInsn(INVOKEVIRTUAL, "no/kantega/labs/revoc/registry/ThreadLocalBuffer", "visitLine", "(IIIJ)V");
