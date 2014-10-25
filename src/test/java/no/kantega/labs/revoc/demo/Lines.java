@@ -25,19 +25,31 @@ public class Lines {
     }
 
     public void once(int... lineNumbers) {
+        times(1, lineNumbers);
+    }
 
+    public void twice(int... lineNumbers) {
+        times(2, lineNumbers);
+    }
+
+    public void times(int times, int... lineNumbers) {
         for(int lineNumber : lineNumbers) {
             long timesRun = data.getLinesVisited(classId)[lineNumber - 1];
-            assertEquals("Expected line " + lineNumber + " to be run 1 times instead of " + timesRun, 1, timesRun);
-            assertTrue("Expected line " + lineNumber + " last run time to be != 0", data.getLinesVisitTimes(classId)[lineNumber - 1] != 0);
+            assertEquals("Expected line " + lineNumber + " to be run " + times + " times instead of " + timesRun, times, timesRun);
+            if (times > 0) {
+                assertTrue("Expected line " + lineNumber + " last run time to be != 0", data.getLinesVisitTimes(classId)[lineNumber - 1] != 0);
+            } else {
+                assertTrue("Expected line " + lineNumber + " last run time to be == 0", data.getLinesVisitTimes(classId)[lineNumber - 1] == 0);
+
+            }
         }
+
     }
 
 
     public void never(int... lineNumbers) {
-        for(int lineNumber : lineNumbers) {
-            assertEquals(0, data.getLinesVisited(classId)[lineNumber-1]);
-            assertTrue("Expected line " + lineNumber + " last run time to be == 0", data.getLinesVisitTimes(classId)[lineNumber-1] == 0);
-        }
+
+        times(0, lineNumbers);
+
     }
 }

@@ -147,8 +147,8 @@ public final class ThreadLocalBuffer implements Runnable {
     }
 
     private void recordMethodVisitAtIndex(int index, long[] visits) {
-        visits[++index]  ++;
-        visits[++index] = Registry.time;
+        visits[index+1]  ++;
+        visits[index+2] = Registry.time;
     }
 
     private int  recordFirstMultiMethodVisit(long methodId, int index, int lines, long visitedLines) {
@@ -198,13 +198,9 @@ public final class ThreadLocalBuffer implements Runnable {
         }
     }
 
-    private long allocateLineIndex(int lines) {
+    private int allocateLineIndex(int lines) {
         int current = lineIndex;
-        int next = lineIndex + lines;
-        if(next >= lineVisits.length) {
-            throw  new ArrayIndexOutOfBoundsException("whoops");
-        }
-        lineIndex = next;
+        lineIndex = current + lines;
         return current;
     }
 
