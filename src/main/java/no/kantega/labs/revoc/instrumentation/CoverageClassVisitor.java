@@ -308,7 +308,6 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
         private int frameMapLocalVariable;
         //private int waitTimeLocalVariable;
         //private int totalWaitTimeLocalVariable;
-        private int linesVisitedLocalVariable;
         private int startTimeLocalVariable;
         private boolean profile;
         private int threadBufferLocal;
@@ -354,10 +353,7 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
             if(trackLines) {
                 if(useLocalVariables) {
                     initializeLineNumberLocalVariables();
-                    linesVisitedLocalVariable = newLocal(Type.LONG_TYPE);
                     multiMethodCursorLocalVariable = newLocal(Type.INT_TYPE);
-                    mv.visitInsn(LCONST_0);
-                    mv.visitVarInsn(LSTORE, linesVisitedLocalVariable);
                 } else {
                     initializeLineNumerArrayLocalVariable();
                 }
@@ -480,17 +476,6 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
                 if(useLocalVariables) {
                     if(methodLineNumbers.size() > 1) {
                         mv.visitIincInsn(lineNumberLocalVariables.get(lineNumber), 1);
-
-                        if(trackTime) {
-
-                            int index = methodLineNumbers.get(lineNumber);
-                            mv.visitVarInsn(LLOAD, linesVisitedLocalVariable);
-                            mv.visitLdcInsn((long)(1 << index));
-                            mv.visitInsn(LOR);
-                            mv.visitVarInsn(LSTORE, linesVisitedLocalVariable);
-
-
-                        }
                     }
                 } else {
                     {
@@ -688,8 +673,33 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
 
                         mv.visitVarInsn(ALOAD, threadBufferLocal);
                         mv.visitLdcInsn(((long) classId << 32 | (long) methodNames.size()));
-                        mv.visitVarInsn(LLOAD, linesVisitedLocalVariable);
-                        visitIntConstantInstruction(Math.min(64, lineNumberLocalVariables.size()));
+
+                        long initialMask = 0;
+
+                        for (Integer lineNumber : lineNumberLocalVariables.keySet()) {
+                            int lineIndex = methodLineNumbers.get(lineNumber);
+                            if (lineIndex < 64) {
+                                if(!isCatchBlock && oneTimeLines.get(myIndex).get(lineIndex)) {
+                                    initialMask |= (1l << lineIndex);
+                                }
+                            }
+                        }
+                        mv.visitLdcInsn(initialMask);
+                        for (Integer lineNumber : lineNumberLocalVariables.keySet()) {
+                            int lineIndex = methodLineNumbers.get(lineNumber);
+                                if (lineIndex < 64 && (isCatchBlock || !oneTimeLines.get(myIndex).get(lineIndex))) {
+                                    mv.visitVarInsn(ILOAD, lineNumberLocalVariables.get(lineNumber));
+                                    mv.visitInsn(ICONST_M1);
+                                    Label after = new Label();
+                                    mv.visitJumpInsn(IF_ICMPEQ, after);
+                                    mv.visitLdcInsn(1l << lineIndex);
+                                    mv.visitInsn(LOR);
+                                    mv.visitLabel(after);
+                                }
+
+                        }
+
+                                    visitIntConstantInstruction(Math.min(64, lineNumberLocalVariables.size()));
                         mv.visitMethodInsn(INVOKEVIRTUAL, "no/kantega/labs/revoc/registry/ThreadLocalBuffer", "visitMultiMethod", "(JJI)I");
                         mv.visitVarInsn(ISTORE, multiMethodCursorLocalVariable);
 
