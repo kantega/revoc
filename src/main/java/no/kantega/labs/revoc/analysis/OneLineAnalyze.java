@@ -14,7 +14,23 @@ import java.util.*;
 public class OneLineAnalyze {
 
 
-    public Map<Integer, BitSet> analyze(MethodNode node) {
+    private final Map<Integer, BitSet> oneLiners;
+    private final Map<Integer, BitSet> mustHaveRun;
+
+    private OneLineAnalyze(Map<Integer, BitSet> oneLiners, Map<Integer, BitSet> mustHaveRun) {
+        this.oneLiners = oneLiners;
+        this.mustHaveRun = mustHaveRun;
+    }
+
+    public Map<Integer, BitSet> getOneLiners() {
+        return oneLiners;
+    }
+
+    public Map<Integer, BitSet> getMustHaveRun() {
+        return mustHaveRun;
+    }
+
+    public static OneLineAnalyze analyze(MethodNode node) {
 
 
 
@@ -128,6 +144,7 @@ public class OneLineAnalyze {
 
 
         Map<Integer, BitSet> oneLiners = new TreeMap<>();
+        Map<Integer, BitSet> mustHaveRun = new TreeMap<>();
 
         Map<Integer, Integer> lineIndex = new TreeMap<>();
 
@@ -141,6 +158,7 @@ public class OneLineAnalyze {
                 }
             }
             oneLiners.put(i, new BitSet());
+            mustHaveRun.put(i, new BitSet());
         }
 
 
@@ -150,25 +168,26 @@ public class OneLineAnalyze {
                 if (instructions.get(d) instanceof LineNumberNode) {
 
                     int line = ((LineNumberNode) instructions.get(d)).line;
+                    int index = lineIndex.get(line);
                     if(!loops.get(line)) {
-                        int index = lineIndex.get(line);
                         oneLiners.get(i).set(index, true);
                     }
+                    mustHaveRun.get(i).set(index);
 
                 }
             }
         }
-        return oneLiners;
+        return new OneLineAnalyze(oneLiners, mustHaveRun);
     }
 
-    private void addJumpSource(Map<Integer, Set<Integer>> jumpSources, int insn, int successor) {
+    private static void addJumpSource(Map<Integer, Set<Integer>> jumpSources, int insn, int successor) {
         if(!jumpSources.containsKey(successor)) {
             jumpSources.put(successor, new HashSet<>());
         }
         jumpSources.get(successor).add(insn);
     }
 
-    private Set<Integer> intersectDominators(Map<Integer, Set<Integer>> dominators, Set<Integer> preds) {
+    private static Set<Integer> intersectDominators(Map<Integer, Set<Integer>> dominators, Set<Integer> preds) {
         if(preds.size() == 0) {
             return Collections.emptySet();
         }

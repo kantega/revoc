@@ -153,7 +153,7 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
         }
     }
 
-    protected MethodVisitor createSecondPassAnalyzer(int classId, Map<Integer, Integer> classLineNumbers, Map<Integer, Integer> methodLineNumbers, Map<Integer, Integer> branchPoints, int reportLoad, Map<Integer, BitSet> oneTimeLines, MethodVisitor mv, int access, String name, String desc) {
+    protected MethodVisitor createSecondPassAnalyzer(int classId, Map<Integer, Integer> classLineNumbers, Map<Integer, Integer> methodLineNumbers, Map<Integer, Integer> branchPoints, int reportLoad, OneLineAnalyze oneTimeLines, MethodVisitor mv, int access, String name, String desc) {
         return new SecondPassInstrumentation(classId, classLineNumbers, methodLineNumbers, branchPoints, reportLoad, oneTimeLines, mv, access, name, desc);
     }
 
@@ -197,7 +197,7 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
 
                 final Map<Integer, Integer> branchPoints = analyzeBranchPoints(instructions);
 
-                final Map<Integer, BitSet> oneTimeLines = new OneLineAnalyze().analyze(this);
+                final OneLineAnalyze oneTimeLines = OneLineAnalyze.analyze(this);
 
                 int numExitPoints = countExitPoints(instructions);
                 int reportLoad = (methodLineNumbers.size() + branchPoints.size()) * numExitPoints;
@@ -294,7 +294,7 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
         private final Map<Integer, Integer> classLineNumbers;
         private final Map<Integer, Integer> methodLineNumbers;
         private final Map<Integer, Integer> branchPoints;
-        private final Map<Integer, BitSet> oneTimeLines;
+        private final OneLineAnalyze oneTimeLines;
         private final int access;
         private final String name;
         private int methodJumpIndex = 0;
@@ -314,7 +314,7 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
         private boolean constructor;
         private int multiMethodCursorLocalVariable;
 
-        protected SecondPassInstrumentation(int classId, Map<Integer, Integer> classLineNumbers, Map<Integer, Integer> methodLineNumbers, Map<Integer, Integer> branchPoints, int reportLoad, Map<Integer, BitSet> oneTimeLines, MethodVisitor methodVisitor, int access, String name, String desc) {
+        protected SecondPassInstrumentation(int classId, Map<Integer, Integer> classLineNumbers, Map<Integer, Integer> methodLineNumbers, Map<Integer, Integer> branchPoints, int reportLoad, OneLineAnalyze oneTimeLines, MethodVisitor methodVisitor, int access, String name, String desc) {
             super(ASM5, methodVisitor, access, name, desc);
             this.classId = classId;
             this.classLineNumbers = classLineNumbers;
@@ -676,18 +676,20 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
 
                         long initialMask = 0;
 
-                        for (Integer lineNumber : lineNumberLocalVariables.keySet()) {
-                            int lineIndex = methodLineNumbers.get(lineNumber);
-                            if (lineIndex < 64) {
-                                if(!isCatchBlock && oneTimeLines.get(myIndex).get(lineIndex)) {
-                                    initialMask |= (1l << lineIndex);
+                        if(!isCatchBlock) {
+                            for (Integer lineNumber : lineNumberLocalVariables.keySet()) {
+                                int lineIndex = methodLineNumbers.get(lineNumber);
+                                if (lineIndex < 64) {
+                                    if (!isCatchBlock && oneTimeLines.getMustHaveRun().get(myIndex).get(lineIndex)) {
+                                        initialMask |= (1l << lineIndex);
+                                    }
                                 }
                             }
                         }
                         mv.visitLdcInsn(initialMask);
                         for (Integer lineNumber : lineNumberLocalVariables.keySet()) {
                             int lineIndex = methodLineNumbers.get(lineNumber);
-                                if (lineIndex < 64 && (isCatchBlock || !oneTimeLines.get(myIndex).get(lineIndex))) {
+                                if (lineIndex < 64 && (isCatchBlock || !oneTimeLines.getMustHaveRun().get(myIndex).get(lineIndex))) {
                                     mv.visitVarInsn(ILOAD, lineNumberLocalVariables.get(lineNumber));
                                     mv.visitInsn(ICONST_M1);
                                     Label after = new Label();
@@ -705,7 +707,7 @@ public class CoverageClassVisitor extends ClassVisitor implements Opcodes {
 
                         for (Integer lineNumber : lineNumberLocalVariables.keySet()) {
                             int lineIndex = methodLineNumbers.get(lineNumber);
-                            if (isCatchBlock || !oneTimeLines.get(myIndex).get(lineIndex)) {
+                            if (isCatchBlock || !oneTimeLines.getOneLiners().get(myIndex).get(lineIndex)) {
                                 if (lineIndex < 64) {
                                     mv.visitVarInsn(ALOAD, threadBufferLocal);
                                     mv.visitVarInsn(ILOAD, multiMethodCursorLocalVariable);

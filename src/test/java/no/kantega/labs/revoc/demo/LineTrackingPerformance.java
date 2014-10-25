@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.lang.reflect.InvocationTargetException;
+import java.util.concurrent.TimeUnit;
 
 import static no.kantega.labs.revoc.demo.ClassUtils.invokeMainMethodUsingReflection;
 
@@ -59,14 +60,14 @@ public class LineTrackingPerformance {
 
             System.out.println("Untouched main class");
             for(int i = 0; i < 50; i++) {
-                long before = System.currentTimeMillis();
+                long before = System.nanoTime();
                 LongLoop.main(null);
-                System.out.println(System.currentTimeMillis() - before);
+                System.out.println(TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - before));
             }
 
             System.out.println("Instrumented main class");
 
-            invokeMainMethodUsingReflection(clazz.getName(), writer.toByteArray(), 50);
+            invokeMainMethodUsingReflection(clazz.getName(), writer.toByteArray(), 500);
 
 
             final CoverageData coverageData = Registry.getCoverageData();

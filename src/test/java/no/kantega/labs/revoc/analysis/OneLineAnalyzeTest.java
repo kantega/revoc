@@ -1,5 +1,6 @@
 package no.kantega.labs.revoc.analysis;
 
+import org.junit.Before;
 import org.junit.Test;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
@@ -22,8 +23,11 @@ import static org.junit.Assert.assertTrue;
  */
 public class OneLineAnalyzeTest {
 
-    @Test
-    public void shouldIdentifyOneliners() throws IOException {
+    private OneLineAnalyze analyze;
+    private InsnList instructions;
+
+    @Before
+    public void before() throws IOException {
         ClassReader reader = new ClassReader(getClass().getResourceAsStream("OneLiner.class"));
 
         final Map<String, MethodNode> methods = new HashMap<>();
@@ -42,13 +46,43 @@ public class OneLineAnalyzeTest {
 
 
         MethodNode run = methods.get("run");
-        Map<Integer, BitSet> oneliners = new OneLineAnalyze().analyze(run);
-        assertEquals(run.instructions.size(), oneliners.size());
+        instructions = run.instructions;
+        analyze = OneLineAnalyze.analyze(run);
+    }
+
+    @Test
+    public void shouldIdentifyOneliners() throws IOException {
+
+        Map<Integer, BitSet> oneliners = analyze.getOneLiners();
+        assertEquals(instructions.size(), oneliners.size());
 
         BitSet fromReturn = oneliners.get(oneliners.size()-2);
         assertTrue(fromReturn.get(0));
         assertTrue(fromReturn.get(1));
         assertFalse(fromReturn.get(2)); // In a loop
+        assertFalse(fromReturn.get(3));
+        assertTrue(fromReturn.get(4));
+        assertFalse(fromReturn.get(5));
+        assertFalse(fromReturn.get(6));
+        assertFalse(fromReturn.get(7));
+        assertFalse(fromReturn.get(8));
+        assertFalse(fromReturn.get(9));
+        assertTrue(fromReturn.get(10));
+        assertTrue(fromReturn.get(11));
+
+    }
+
+    @Test
+    public void shouldIdentifyMustHaveRun() throws IOException {
+
+        Map<Integer, BitSet> oneliners = analyze.getMustHaveRun();
+
+        assertEquals(instructions.size(), oneliners.size());
+
+        BitSet fromReturn = oneliners.get(oneliners.size()-2);
+        assertTrue(fromReturn.get(0));
+        assertTrue(fromReturn.get(1));
+        assertTrue(fromReturn.get(2)); // In a loop
         assertFalse(fromReturn.get(3));
         assertTrue(fromReturn.get(4));
         assertFalse(fromReturn.get(5));

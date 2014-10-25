@@ -17,6 +17,7 @@
 package no.kantega.labs.revoc.demo;
 
 import no.kantega.labs.helloworld.HelloWorld;
+import no.kantega.labs.revoc.analysis.OneLineAnalyze;
 import no.kantega.labs.revoc.instrumentation.CoverageClassVisitor;
 import no.kantega.labs.revoc.registry.CoverageData;
 import no.kantega.labs.revoc.registry.Registry;
@@ -50,7 +51,7 @@ public class SimpleCoverageVisitorTest {
         int classId = Registry.newClassId(clazz.getName().replace('.', '/'), clazz.getClassLoader());
         CoverageClassVisitor visitor = new CoverageClassVisitor(cw, classId) {
             @Override
-            protected MethodVisitor createSecondPassAnalyzer(int classId, Map<Integer, Integer> classLineNumbers, Map<Integer, Integer> methodLineNumbers, Map<Integer, Integer> branchPoints, int reportLoad, Map<Integer, BitSet> oneTimeLines, MethodVisitor mv, int access, String name, String desc) {
+            protected MethodVisitor createSecondPassAnalyzer(int classId, Map<Integer, Integer> classLineNumbers, Map<Integer, Integer> methodLineNumbers, Map<Integer, Integer> branchPoints, int reportLoad, OneLineAnalyze oneTimeLines, MethodVisitor mv, int access, String name, String desc) {
                 return new SimpleConverageVisitor(classId, classLineNumbers, mv);
             }
         };
