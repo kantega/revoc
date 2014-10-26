@@ -26,6 +26,7 @@
 
     <modules>
         <module>agent</module>
+        <module>maven-plugin</module>
     </modules>
 
     <dependencyManagement>
