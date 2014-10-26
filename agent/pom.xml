@@ -104,6 +104,7 @@
                         <manifestEntries>
                             <Agent-Class>no.kantega.labs.revoc.agent.RevocAgent</Agent-Class>
                             <Premain-Class>no.kantega.labs.revoc.agent.RevocAgent</Premain-Class>
+                            <Main-Class>no.kantega.labs.revoc.main.Main</Main-Class>
                         </manifestEntries>
                     </archive>
                 </configuration>

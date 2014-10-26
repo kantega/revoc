@@ -1,5 +1,6 @@
 package org.kantega.revoc.maven;
 
+import no.kantega.labs.revoc.main.Main;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -34,32 +35,7 @@ public class SetupMojo extends AbstractMojo {
 
         File agentFile = getAgentFile();
 
-        System.out.println();
-        String portString = System.console().readLine("Which port should the Revoc web server start on? [%s]: ", port);
-        if(portString != null  &&  !portString.isEmpty()) {
-            port = Integer.parseInt(portString);
-        }
-
-        String packages = System.console().readLine("Which packages do you want to instrument? (com.example): ", port);
-        if(portString != null  &&  !portString.isEmpty()) {
-            port = Integer.parseInt(portString);
-        }
-
-        String agentLine = "-javaagent:" + agentFile + "=port=" + port + ",packages=" + packages;
-
-        System.out.println();
-        System.out.println("Startup argument to enable Revoc instrumentation on port " + port + " of packages " + packages);
-        System.out.println();
-        System.out.println(agentLine);
-        System.out.println();
-        System.out.println("Using Maven?");
-        System.out.println();
-        System.out.println("export MAVEN_OPTS+=" + agentLine);
-        System.out.println();
-        System.out.println("Or Tomcat?");
-        System.out.println();
-        System.out.println("export CATALINA_OPTS+=" + agentLine);
-        System.out.println();
+        Main.setup(agentFile, port);
         System.exit(0);
     }
 
