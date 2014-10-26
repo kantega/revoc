@@ -102,9 +102,9 @@
                 <configuration>
                     <archive>
                         <manifestEntries>
-                            <Agent-Class>no.kantega.labs.revoc.agent.RevocAgent</Agent-Class>
-                            <Premain-Class>no.kantega.labs.revoc.agent.RevocAgent</Premain-Class>
-                            <Main-Class>no.kantega.labs.revoc.main.Main</Main-Class>
+                            <Agent-Class>org.kantega.revoc.agent.RevocAgent</Agent-Class>
+                            <Premain-Class>org.kantega.revoc.agent.RevocAgent</Premain-Class>
+                            <Main-Class>org.kantega.revoc.main.Main</Main-Class>
                         </manifestEntries>
                     </archive>
                 </configuration>
@@ -118,9 +118,9 @@
                         <configuration>
                             <archive>
                                 <manifestEntries>
-                                    <Premain-Class>no.kantega.labs.helloworld.sampletransformers.UpperCaseAgent</Premain-Class>
-                                    <Agent-Class>no.kantega.labs.helloworld.sampletransformers.UpperCaseAgent</Agent-Class>
-                                    <Main-Class>no.kantega.labs.helloworld.sampletransformers.UpperCaseAgent</Main-Class>
+                                    <Premain-Class>org.kantega.helloworld.sampletransformers.UpperCaseAgent</Premain-Class>
+                                    <Agent-Class>org.kantega.helloworld.sampletransformers.UpperCaseAgent</Agent-Class>
+                                    <Main-Class>org.kantega.helloworld.sampletransformers.UpperCaseAgent</Main-Class>
                                 </manifestEntries>
                             </archive>
                         </configuration>
@@ -159,21 +159,21 @@
                             <relocations>
                                 <relocation>
                                     <pattern>javax.servlet</pattern>
-                                    <shadedPattern>no.kantega.labs.revoc.shaded.javax.servlet</shadedPattern>
+                                    <shadedPattern>org.kantega.revoc.shaded.javax.servlet</shadedPattern>
                                 </relocation>
                                 <relocation>
                                     <pattern>org.objectweb.asm</pattern>
-                                    <shadedPattern>no.kantega.labs.revoc.shaded.org.objectweb.asm</shadedPattern>
+                                    <shadedPattern>org.kantega.revoc.shaded.org.objectweb.asm</shadedPattern>
                                 </relocation>
 
                                 <relocation>
                                     <pattern>org.apache.commons.io</pattern>
-                                    <shadedPattern>no.kantega.labs.revoc.shaded.org.apache.commons.io</shadedPattern>
+                                    <shadedPattern>org.kantega.revoc.shaded.org.apache.commons.io</shadedPattern>
                                 </relocation>
 
                                 <relocation>
                                     <pattern>org.eclipse.jetty</pattern>
-                                    <shadedPattern>no.kantega.labs.revoc.shaded.org.eclipse.jetty</shadedPattern>
+                                    <shadedPattern>org.kantega.revoc.shaded.org.eclipse.jetty</shadedPattern>
                                 </relocation>
 
                             </relocations>
