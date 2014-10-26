@@ -16,7 +16,10 @@
 <body ng-controller="SetupController" style="margin:1em">
 
 <div ng-clock="agentFile" class="ng-cloak">
-    <h1>Revoc setup</h1>
+    <h1>Revoc java agent configuration</h1>
+    <p>
+        This page helps you configure the Revoc java agent
+    </p>
     <table>
         <tr>
             <td>Run Revoc on port:</td>
@@ -38,7 +41,7 @@
             </td>
         </tr>
 
-        <tr>
+        <tr ng-show="mavenRepo">
             <td>Download source jars to local repo:</td>
             <td>
                 <input ng-model="mavenDownloadRepo" size="60">
@@ -47,7 +50,7 @@
     </table>
 
     <p>
-        Add this to your Java startup script:
+        Command line arguments:
     </p>
     <textarea class="setup" readonly>{{env()}}REVOC_AGENT="{{agentLine()}}"
 
@@ -55,17 +58,17 @@
 java $REVOC_AGENT com.example.Main</textarea>
 
     <p>
-        Using Maven?
+        For Maven:
     </p>
     <textarea class="setup" readonly>{{env()}}export MAVEN_OPTS+="{{agentLine()}}"</textarea>
 
     <p>
-        Or Tomcat?
+        For Tomcat:
     </p>
     <textarea class="setup" readonly>{{env()}}export CATALINA_OPTS+="{{agentLine()}}"</textarea>
 
     <p>
-        Or Jetty?
+        For Jetty:
     </p>
     <textarea class="setup" readonly>{{env()}}export JAVA_OPTS+="{{agentLine()}}"</textarea>
 

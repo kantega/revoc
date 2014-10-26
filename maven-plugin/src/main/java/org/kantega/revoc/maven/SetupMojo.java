@@ -16,7 +16,7 @@ import java.io.File;
 /**
  *
  */
-@Mojo(name = "setup", requiresDependencyResolution = ResolutionScope.COMPILE)
+@Mojo(name = "setup", requiresProject = false)
 public class SetupMojo extends AbstractMojo {
 
     @Parameter(defaultValue = "${plugin}")
@@ -29,7 +29,7 @@ public class SetupMojo extends AbstractMojo {
         File agentFile = getAgentFile();
 
         try {
-            new JettyStarter().startSetup(agentFile);
+            new JettyStarter().startSetup(agentFile, 0);
         } catch (Exception e) {
             throw new MojoExecutionException(e.getMessage(), e);
         }
