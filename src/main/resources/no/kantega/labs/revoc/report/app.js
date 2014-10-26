@@ -129,64 +129,139 @@ angular.module("revoc", [])
         return ws;
     })
     .service("classesParser", ["packageNameFilter", "simpleClassNameFilter", function (packageNameFilter, simpleNameFilter) {
-        return function (data) {
-            var array = new Array();
 
-            var totalNumLinesRun = 0;
-            var totalNumLinesNotRun = 0;
-            var totalNumLines = 0;
-            var totalMax = 0;
-            var totalSumRun = 0;
+        function compareClasses(left, right) {
+            if(!left) {
+                return parseClass(right);
+            }
 
-            var i = 0;
-            for (var c in data) {
-                var numLines = 0;
-                var numLinesRun = 0;
-                var sumLinesRun = 0;
-                var maxLinesRun = 0;
+            var numLines = 0;
+            var numLinesRun = 0;
+            var sumLinesRun = 0;
+            var maxLinesRun = 0;
 
-                var lines = data[c][1];
-                var visits = data[c][2];
-                for (var l = 0, m = lines.length; l < m; l++) {
-                    var r = visits[l];
-                    if (r > 0) {
-                        numLinesRun++;
-                        totalNumLinesRun++;
-                        sumLinesRun += r;
-                        totalSumRun += r;
-                    }
+            var linesRight = right[1];
+            var visitsRight = right[2];
+            var linesLeft = left[1];
+            var visitsLeft= left[2];
 
-                    maxLinesRun = Math.max(r, maxLinesRun);
-                    totalMax = Math.max(r, totalMax);
-                    numLines++;
-                    totalNumLines++;
+            var linesLeftLookup = {};
 
+
+            for (var l = 0, m = linesLeft.length; l < m; l++) {
+                linesLeftLookup[linesLeft[l]] = visitsLeft[l];
+            }
+            for (var l = 0, m = linesRight.length; l < m; l++) {
+                var vl = linesLeftLookup[linesRight[l]] || 0;
+
+                var diff = visitsRight[l] - vl;
+                if (diff > 0 ) {
+                    numLinesRun++;
+                    sumLinesRun += diff;
                 }
-                totalNumLinesNotRun += (numLines - numLinesRun);
-                array.push({
-                    index: i++,
-                    id: c,
-                    classLoaderId: c.substr(0, c.indexOf("+")),
-                    className: c.substr(c.indexOf("+")+1),
-                    package:packageNameFilter(c),
-                    simpleName: simpleNameFilter(c),
-                    run: numLinesRun,
-                    notrun: numLines - numLinesRun,
-                    lines: numLines,
-                    coverage: Math.round(numLinesRun * 100 / numLines),
-                    sum: sumLinesRun, max: maxLinesRun
-                });
+
+                maxLinesRun = Math.max(diff, maxLinesRun);
+                numLines++;
+
+            }
+
+            return {
+                run: numLinesRun,
+                notrun: numLines - numLinesRun,
+                lines: numLines,
+                coverage: Math.round(numLinesRun * 100 / numLines),
+                sum: sumLinesRun,
+                max: maxLinesRun
+            };
+        }
+
+        function parseClass(classData) {
+            var numLines = 0;
+            var numLinesRun = 0;
+            var sumLinesRun = 0;
+            var maxLinesRun = 0;
+
+            var lines = classData[1];
+            var visits = classData[2];
+            for (var l = 0, m = lines.length; l < m; l++) {
+                var r = visits[l];
+                if (r > 0) {
+                    numLinesRun++;
+                    sumLinesRun += r;
+                }
+                maxLinesRun = Math.max(r, maxLinesRun);
+                numLines++;
+
             }
             return {
-                classes: array,
-                total: {
-                    run: totalNumLinesRun,
-                    notrun: totalNumLinesNotRun,
-                    lines: totalNumLines,
-                    coverage: Math.round(totalNumLinesRun * 100 / totalNumLines),
-                    sum: totalSumRun,
-                    max: totalMax
-                }
+                run: numLinesRun,
+                notrun: numLines - numLinesRun,
+                lines: numLines,
+                coverage: Math.round(numLinesRun * 100 / numLines),
+                sum: sumLinesRun, max: maxLinesRun
             };
+        }
+        return {
+            parseClasses: function (data) {
+                var array = [];
+
+                var totalNumLinesRun = 0;
+                var totalNumLinesNotRun = 0;
+                var totalNumLines = 0;
+                var totalMax = 0;
+                var totalSumRun = 0;
+
+                for (var c in data) {
+                    var item = parseClass(data[c]);
+                    item.index= array.length;
+                    item.id= c;
+                    item.classLoaderId= c.substr(0, c.indexOf("+"));
+                    item.className= c.substr(c.indexOf("+")+1);
+                    item.package= packageNameFilter(c);
+                    item.simpleName= simpleNameFilter(c);
+                    array.push(item)
+                }
+                return {
+                    classes: array,
+                    total: {
+                        run: totalNumLinesRun,
+                        notrun: totalNumLinesNotRun,
+                        lines: totalNumLines,
+                        coverage: Math.round(totalNumLinesRun * 100 / totalNumLines),
+                        sum: totalSumRun,
+                        max: totalMax
+                    }
+                };
+            },
+            parseRecording: function (rec) {
+
+                var array = [];
+                var startClasses = rec.start.data.classes;
+                var endClasses = rec.end.data.classes;
+                for(var s in  endClasses) {
+                    var diff = compareClasses(startClasses[s], endClasses[s]);
+
+                    if(diff.run != 0) {
+                        diff.index= array.length;
+                        diff.id= s;
+                        diff.classLoaderId= s.substr(0, s.indexOf("+"));
+                        diff.className= s.substr(s.indexOf("+")+1);
+                        diff.package= packageNameFilter(s);
+                        diff.simpleName= simpleNameFilter(s);
+                        array.push(diff);
+                    }                  ''
+                }
+                return {
+                    classes: array,
+                    total: {
+                        run: 0,
+                        notrun: 0,
+                        lines: 0,
+                        coverage: 0,
+                        sum: 0,
+                        max: 0
+                    }
+                };
+            }
         }
     }]);

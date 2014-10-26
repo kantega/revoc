@@ -226,3 +226,12 @@ div.filters {
 .ng-cloak {
     display: none;
 }
+
+a.record {
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    background-color: red;
+    border-radius: 1em;
+
+}

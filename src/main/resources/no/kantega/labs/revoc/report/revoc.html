@@ -27,9 +27,14 @@
 
 <div class="sourceinfo">
     <span ng-hide="data">Loading...</span>
-    <div class="togglePixels" ng-click="showNavigation=!showNavigation" ng-init="showNavigation=true">
+    <div class="togglePixels" ng-init="showNavigation=false">
+        <span ng-show="recordings.length > 0">{{recordings.length}} recording<snap ng-show="recordings.length > 1">s</snap></span>
+        <span ng-show="recording">Recording..</span>
+        <a href class="record" ng-click="record()"></a>
+        <span ng-click="showNavigation=!showNavigation" >
         <span ng-show="showNavigation">Hide navigation</span>
         <span ng-hide="showNavigation">Show navigation</span>
+            </span>
     </div>
     <div ng-cloak="data" class="ng-cloak">
         <span ng-show="selectedSource">
@@ -40,9 +45,36 @@
 </div>
 <div class="infostrut"></div>
 
-<div ng-cloak="data" class="ng-cloak">
+<div ng-cloak="data" class="ng-cloak" ng-init="selectedRecordings={}">
 
+    <div ng-show="recordings.length > 0">
+        <table >
+            <tr>
+                <th></th>
+                <th>Start</th>
+                <th>End</th>
+            </tr>
+            <tr ng-repeat="recording in recordings">
+                <td>
+                    <input type="checkbox" ng-model="selectedRecordings[$index]">
+                </td>
+                <td>
+                    {{recording.start.time | date:'short'}}
+                </td>
+                <td>
+                    {{recording.end.time | date:'short'}}
+                </td>
+                <td>
+                    <a href ng-click="viewRecording(recording)">View</a>
+                </td>
+            </tr>
+        </table>
+        <p ng-show="getSelectedRecordings().length == 2">
+            <a href ng-click="compareSelectedRecordings()">Compare selected</a>
+        </p>
+    </div>
 
+     </div>
     <div ng-show="selectedSource">
 
         <table>

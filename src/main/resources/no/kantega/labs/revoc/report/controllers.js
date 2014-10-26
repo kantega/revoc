@@ -40,7 +40,7 @@ angular.module("revoc")
                     $scope.dataVersion++;
 
 
-                    $scope.classes = classesParser($scope.data.classes);
+                    $scope.classes = classesParser.parseClasses($scope.data.classes);
                     $scope.loaders = parseLoaders($scope.data.loaders);
                     if($scope.selectedSource) {
                         updateSourceLines($scope.selectedSource.lines, $scope.data.classes[$scope.selectedSource.class.id]);
@@ -165,6 +165,57 @@ angular.module("revoc")
                 }
                 return undefined;
             }
+
+
+            $scope.recordings = [];
+
+            function makeSnapshot() {
+                var copy = JSON.parse(JSON.stringify($scope.data));
+                return {time: new Date(), data: copy};
+            }
+
+            $scope.record = function() {
+                if(!$scope.recording) {
+                    $scope.snapshot = makeSnapshot();
+                } else {
+                    $scope.recordings.push({start: $scope.snapshot, end: makeSnapshot()})
+                    $scope.snapshot = null;
+                }
+                $scope.recording = !$scope.recording;
+
+            };
+
+            $scope.getSelectedRecordings = function() {
+
+                var selected = [];
+                var sr = $scope.selectedRecordings;
+                if(!sr) {
+                    return selected;
+                }
+                var recordings = $scope.recordings;
+                for (var i in sr) {
+                    if (sr[i]) {
+                        selected.push(recordings[i]);
+                    }
+                }
+                return selected;
+            };
+
+            $scope.compareSelectedRecordings = function() {
+
+                var sr = $scope.getSelectedRecordings();
+
+                var left = sr[0];
+
+                var right = sr[1];
+
+
+            };
+
+
+            $scope.viewRecording = function(rec) {
+                $scope.classes = classesParser.parseRecording(rec);
+            };
 
             websocket.addListener(newData);
 
