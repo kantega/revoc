@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+
+<html ng-app="setup">
+
+<head>
+    <title>Revoc</title>
+    <link href="assets/revoc.css" rel="stylesheet">
+    <link href="assets/setup.css" rel="stylesheet">
+    <style>
+        .ng-cloak {
+
+        }
+    </style>
+</head>
+
+<body ng-controller="SetupController" style="margin:1em">
+
+<div ng-clock="agentFile" class="ng-cloak">
+    <h1>Revoc setup</h1>
+    <table>
+        <tr>
+            <td>Run Revoc on port:</td>
+            <td>
+                <input ng-model="port" type="number" size="5">
+            </td>
+        </tr>
+        <tr>
+            <td>Packages to instrument:</td>
+            <td>
+                <input ng-model="packages" size="60">
+            </td>
+        </tr>
+
+        <tr>
+            <td>Download source jars from Maven repo:</td>
+            <td>
+                <input ng-model="mavenRepo" size="60">
+            </td>
+        </tr>
+
+        <tr>
+            <td>Download source jars to local repo:</td>
+            <td>
+                <input ng-model="mavenDownloadRepo" size="60">
+            </td>
+        </tr>
+    </table>
+
+    <p>
+        Add this to your Java startup script:
+    </p>
+    <textarea class="setup" readonly>{{env()}}REVOC_AGENT="{{agentLine()}}"
+
+# Start java with the Revoc javaagent:
+java $REVOC_AGENT com.example.Main</textarea>
+
+    <p>
+        Using Maven?
+    </p>
+    <textarea class="setup" readonly>{{env()}}export MAVEN_OPTS+="{{agentLine()}}"</textarea>
+
+    <p>
+        Or Tomcat?
+    </p>
+    <textarea class="setup" readonly>{{env()}}export CATALINA_OPTS+="{{agentLine()}}"</textarea>
+
+    <p>
+        Or Jetty?
+    </p>
+    <textarea class="setup" readonly>{{env()}}export JAVA_OPTS+="{{agentLine()}}"</textarea>
+
+</div>
+<script type="text/javascript" src="webjars/angularjs/1.3.0/angular.js"></script>
+<script type="text/javascript" src="assets/setup.js"></script>
+
+</body>
+
+</html>

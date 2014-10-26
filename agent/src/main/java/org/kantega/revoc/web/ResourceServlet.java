@@ -11,19 +11,18 @@ import java.io.IOException;
 /**
  *
  */
-public class RootServlet extends HttpServlet{
+public class ResourceServlet extends HttpServlet{
     private final ResourceManager resourceManager;
+    private final String path;
 
-    public RootServlet(ResourceManager resourceManager) {
-
+    public ResourceServlet(ResourceManager resourceManager, String path) {
         this.resourceManager = resourceManager;
+        this.path = path;
     }
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse response) throws ServletException, IOException {
-        response.setContentType("text/html");
-        IOUtils.copy(resourceManager.getResourceStream("revoc.html"), response.getOutputStream());
-        return;
-
+        response.setContentType(req.getServletContext().getMimeType(path));
+        IOUtils.copy(resourceManager.getResourceStream(path), response.getOutputStream());
     }
 }

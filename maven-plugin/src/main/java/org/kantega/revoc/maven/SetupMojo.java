@@ -9,6 +9,7 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
+import org.kantega.revoc.web.JettyStarter;
 
 import java.io.File;
 
@@ -18,15 +19,8 @@ import java.io.File;
 @Mojo(name = "setup", requiresDependencyResolution = ResolutionScope.COMPILE)
 public class SetupMojo extends AbstractMojo {
 
-    @Parameter(defaultValue = "${project}")
-    MavenProject project;
-
     @Parameter(defaultValue = "${plugin}")
     PluginDescriptor plugin;
-
-    @Parameter
-    int port = 7070;
-
 
 
     @Override
@@ -34,8 +28,11 @@ public class SetupMojo extends AbstractMojo {
 
         File agentFile = getAgentFile();
 
-        Main.setup(agentFile, port);
-        System.exit(0);
+        try {
+            new JettyStarter().startSetup(agentFile);
+        } catch (Exception e) {
+            throw new MojoExecutionException(e.getMessage(), e);
+        }
     }
 
     private File getAgentFile() {
